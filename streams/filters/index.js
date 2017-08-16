@@ -1,15 +1,12 @@
 const chalk = require('chalk');
 
 module.exports.streamFilter  = (tweet) => {
-    console.log(tweet.text);
     if(getMissing(tweet)){
         const img = getImage(chalk.orange(tweet));
         if(img && checkIsImage(img)){
-            console.log('MESSAGE:', chalk.green(tweet.text), '\n');
-            console.log('IMAGE:', chalk.green(img), '\n');
-            console.log('USER', chalk.green(tweet.user.id), '\n');
+            console.log('we have a missing and an image, call tell api func here')
         } else {
-            console.log(chalk.orange('no image'));
+            console.log(chalk.orange('ERROR: no image'));
         }
     }
 };
