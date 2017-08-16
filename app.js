@@ -3,11 +3,6 @@ const env = require('dotenv').config();
 
 const filter = require('./streams/filters');
 const error = require('./streams/error');
-const accounts = require('./streams/ids');
-
-const streamParameters = {
-    follow: accounts.getStreamIds(accounts.streamIDs)
-};
 
 const conn = {
     consumer_key: env.parsed.consumer_key,
@@ -17,9 +12,18 @@ const conn = {
 }
 
 const client = new Twitter(conn);
-client.stream('statuses/filter', streamParameters, (stream) => {
-    stream.on('data', (tweet, client) => { 
-        filter.streamFilter(tweet, client);
+const startStream = (client, streamParams) => { 
+    client.stream('statuses/filter', streamParams, (stream) => {
+        stream.on('data', (tweet) => filter.streamFilter(tweet, client));
+        stream.on('error', error.streamError);
     });
-    stream.on('error', error.streamError);
-})
+}
+
+client.get('friends/list', (error, friends, response) => {
+    if(error) throw error;
+    const streamParameters = {
+        follow: friends.users.map(friend => friend.id_str).toString()
+    };
+    console.log(streamParameters);
+    startStream(client, streamParameters);
+});

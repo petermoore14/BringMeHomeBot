@@ -3,7 +3,7 @@
 module.exports.sendMessage = (client, params) => {
     client.post('direct_messages/new', params, (err, message, res) => {
         if(!err){
-            console.log(message);
+            console.log('sent DM');
         }else {
             console.log('ERROR: Unable to send message after matching image');
         }

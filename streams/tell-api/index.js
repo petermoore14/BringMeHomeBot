@@ -1,15 +1,55 @@
+var rp = require('request-promise');
+var Bitly = require('bitly');
 const messages = require('../messages');
+const env = require('dotenv').config();
+var sha1 = require('sha1');
 
 //todo hook into tellfinder face matching api
-module.exports.callFaceApi = (tweetInfo, tweetClient) => {
-    //call facematching api
-    if(false) { // if we get a direct match 
-        params = {
-            user_id: tweetInfo.user_id,
-            text: `We have found a linked match to your missing persons ${tweetInfo.img}`
-        }
-        mesages.sendMessage(tweetClient, params);
-    } else {
-        console.log('ERROR: could not match image or bad values sent to tellfinder')
+module.exports.callFaceApi = (imageArray, tweetClient, user) => {
+    const baseUrl = env.parsed.baseUrl;
+    const sim = '/v1/similarimages';
+    const bitly = new Bitly(env.parsed.bitly);
+    //go through each image
+    imageArray.forEach(img => {
+        //call facematching api
+        console.log(options(baseUrl + sim, img));
+        rp(options(baseUrl + sim, img)).then(res => {
+            // if we get at least one match create link to bring me home static page
+            if(res.similarHashes.length > 0){
+                const hash = computeHash(img);
+                const encodedUri = encodeURIComponent(img);
+                const bringMeHomeUrl =  baseUrl + '/bringmehome?url=' + encodedUri + '&hash=' + hash.toUpperCase();
+                bitly.shorten(bringMeHomeUrl)
+                .then((response) => {
+                    var short_url = response.data.url
+                    messages.sendMessage(tweetClient, {user_id: user, text: 'More information about Missing indidual at: ' + short_url });
+                }, (error) => {
+                    throw error;
+                });
+            } else {
+                console.log(`no similar images to ${img}`);
+            }
+         }).catch(err => {
+            throw err
+         });
+    });
+}
+
+const options = (url, img) => {
+    return {
+        method: 'POST',
+        uri:url,
+        body: {
+            url:img
+        },
+        auth:{
+            user:'tf2api@uncharted.software',
+            pass:'tf2api1234'
+        },
+        json: true
     }
+}
+
+const computeHash = (img) =>{
+    return sha1(img + env.parsed.hash_secret)
 }

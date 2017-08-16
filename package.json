@@ -9,8 +9,13 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "bit.ly": "^1.0.3",
+    "bitly": "^4.1.1",
     "chalk": "^2.1.0",
     "dotenv": "^4.0.0",
+    "request": "^2.81.0",
+    "request-promise": "^4.2.1",
+    "sha1": "^1.1.1",
     "twitter": "^1.7.1"
   }
 }
