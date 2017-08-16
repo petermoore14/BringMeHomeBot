@@ -2,14 +2,13 @@ const chalk = require('chalk');
 const callTellfinder = require('../tell-api')
 const env = require('dotenv').config();
 module.exports.streamFilter  = (tweet, client) => {
-    console.log(tweet.text);
     if(getMissing(tweet)){
         const imgs = getImages(tweet);
         if(checkIsImages(imgs).length > 0){
             const user = env.parsed.limit_direct_messages === 'true' ? env.parsed.direct_message_recipient : tweet.user.id_str;
             callTellfinder.callFaceApi(imgs, client, user);
         } else {
-            console.log(chalk.green('ERROR: no image'));
+            console.log(chalk.red('ERROR: no image'));
         }
     }
 };

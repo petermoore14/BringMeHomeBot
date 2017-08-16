@@ -12,7 +12,6 @@ module.exports.callFaceApi = (imageArray, tweetClient, user) => {
     //go through each image
     imageArray.forEach(img => {
         //call facematching api
-        console.log(options(baseUrl + sim, img));
         rp(options(baseUrl + sim, img)).then(res => {
             // if we get at least one match create link to bring me home static page
             if(res.similarHashes.length > 0){

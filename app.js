@@ -24,6 +24,5 @@ client.get('friends/list', (error, friends, response) => {
     const streamParameters = {
         follow: friends.users.map(friend => friend.id_str).toString()
     };
-    console.log(streamParameters);
     startStream(client, streamParameters);
 });
