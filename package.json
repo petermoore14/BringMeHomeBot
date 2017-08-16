@@ -9,7 +9,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "bit.ly": "^1.0.3",
     "bitly": "^4.1.1",
     "chalk": "^2.1.0",
     "dotenv": "^4.0.0",
