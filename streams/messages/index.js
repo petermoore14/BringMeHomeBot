@@ -5,7 +5,7 @@ module.exports.sendMessage = (client, params) => {
         if(!err){
             console.log(message);
         }else {
-            console.log('Unable to send message after matching image');
+            console.log('ERROR: Unable to send message after matching image');
         }
     });
 }

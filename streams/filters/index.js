@@ -1,6 +1,6 @@
 const chalk = require('chalk');
 
-module.exports.streamFilter  = (tweet) => {
+module.exports.streamFilter  = (tweet, client) => {
     if(getMissing(tweet)){
         const img = getImage(chalk.orange(tweet));
         if(img && checkIsImage(img)){

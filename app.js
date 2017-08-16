@@ -18,6 +18,8 @@ const conn = {
 
 const client = new Twitter(conn);
 client.stream('statuses/filter', streamParameters, (stream) => {
-    stream.on('data', filter.streamFilter);
+    stream.on('data', (tweet, client) => { 
+        filter.streamFilter(tweet, client);
+    });
     stream.on('error', error.streamError);
 })
