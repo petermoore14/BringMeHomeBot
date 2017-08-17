@@ -4,10 +4,13 @@
   "description": "twitter bot for missing persons",
   "main": "app.js",
   "scripts": {
+    "start": "node app",
     "test": "echo \"Error: no tests\" && exit 0"
   },
   "author": "tellfinder@uncharted.software",
-  "license": "Apache2",
+  "readme": "README.md",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/unchartedsoftware/BringMeHomeBot",
   "dependencies": {
     "bitly": "^4.1.1",
     "chalk": "^2.1.0",

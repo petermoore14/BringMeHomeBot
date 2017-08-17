@@ -1,4 +1,4 @@
-FROM nodesource/node:4.0
+FROM nodesource/node:6.3
 
 RUN apt-get update
 RUN apt-get dist-upgrade -y
@@ -12,7 +12,5 @@ RUN npm install
 
 ADD app.js app.js
 ADD streams streams/
-
-ADD .env .env
 
 CMD ["/usr/bin/supervisord"]

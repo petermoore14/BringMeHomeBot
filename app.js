@@ -23,10 +23,10 @@ const filter = require('./streams/filters');
 const error = require('./streams/error');
 
 const conn = {
-    consumer_key: env.parsed.consumer_key,
-    consumer_secret: env.parsed.consumer_secret,
-    access_token_key: env.parsed.access_token_key,
-    access_token_secret: env.parsed.access_token_secret
+    consumer_key: process.env.consumer_key,
+    consumer_secret: process.env.consumer_secret,
+    access_token_key: process.env.access_token_key,
+    access_token_secret: process.env.access_token_secret
 };
 
 
@@ -38,7 +38,7 @@ client.get('application/rate_limit_status', (err,response) => {
     if (err) console.log(JSON.stringify(err));
 });
 
-console.log('Created connection to Twitter api');
+console.log('Created connection to Twitter api for ' + conn.consumer_key);
 
 const startStream = (client, streamParams) => { 
     client.stream('statuses/filter', streamParams, (stream) => {
@@ -67,4 +67,4 @@ const server = http.createServer((request, response) => {
     response.end("Up\n");
 });
 
-server.listen(env.parsed.server_listen_port);
+server.listen(process.env.server_listen_port);
