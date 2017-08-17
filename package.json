@@ -1,13 +1,13 @@
 {
-  "name": "lighthouse_test",
+  "name": "#BringMeHome",
   "version": "1.0.0",
-  "description": "twitter stream missing persons test",
+  "description": "twitter bot for missing persons",
   "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "tellfinder@uncharted.software",
+  "license": "Apache2",
   "dependencies": {
     "bitly": "^4.1.1",
     "chalk": "^2.1.0",
