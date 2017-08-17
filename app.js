@@ -13,7 +13,17 @@ const conn = {
     access_token_secret: env.parsed.access_token_secret
 };
 
+
+console.log('Application started');
 const client = new Twitter(conn);
+
+client.get('application/rate_limit_status', (err,response) => {
+    console.log(JSON.stringify(response));
+    if (err) console.log(JSON.stringify(err));
+});
+
+console.log('Created connection to Twitter api');
+
 const startStream = (client, streamParams) => { 
     client.stream('statuses/filter', streamParams, (stream) => {
         stream.on('data', (tweet) => filter.streamFilter(tweet, client));
@@ -23,8 +33,12 @@ const startStream = (client, streamParams) => {
 
 client.get('friends/list', (error, friends, response) => {
     if(error) throw error;
+    const following = friends.users.map(friend => friend.id_str).toString();
+    const friendlyFollowers = friends.users.map(friend => friend.name).toString()
+    console.log('Following:' + friendlyFollowers);
+
     const streamParameters = {
-        follow: friends.users.map(friend => friend.id_str).toString()
+        follow: following
     };
     startStream(client, streamParameters);
 });

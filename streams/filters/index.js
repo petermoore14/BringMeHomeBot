@@ -2,6 +2,7 @@ const chalk = require('chalk');
 const callTellfinder = require('../tell-api')
 const env = require('dotenv').config();
 module.exports.streamFilter  = (tweet, client) => {
+    console.log("Recieved tweet: " + tweet.text);
     if(getMissing(tweet)){
         const imgs = getImages(tweet);
         if(checkIsImages(imgs).length > 0){
