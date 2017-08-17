@@ -1,5 +1,5 @@
 {
-  "name": "#BringMeHome",
+  "name": "BringMeHomeBot",
   "version": "1.0.0",
   "description": "twitter bot for missing persons",
   "main": "app.js",
