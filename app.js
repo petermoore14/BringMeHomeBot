@@ -32,7 +32,9 @@ const startStream = (client, streamParams) => {
 };
 
 client.get('friends/list', (error, friends, response) => {
-    if(error) throw error;
+    if(error) {
+        console.log(error);
+    }
     const following = friends.users.map(friend => friend.id_str).toString();
     const friendlyFollowers = friends.users.map(friend => friend.name).toString()
     console.log('Following:' + friendlyFollowers);
