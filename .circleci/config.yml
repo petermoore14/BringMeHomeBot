@@ -29,31 +29,6 @@ jobs:
 
       - run: yarn test
 
-  deploy:
-    docker:
-      - image: circleci/node:7.10
-
-    working_directory: ~/repo
-
-    steps:
-      - checkout
-
-      # Download and cache dependencies
-      - restore_cache:
-          keys:
-          - v1-dependencies-{{ checksum "package.json" }}
-          # fallback to using the latest cache if no exact match is found
-          - v1-dependencies-
-
-      - run: yarn install
-
-      - save_cache:
-          paths:
-            - node_modules
-          key: v1-dependencies-{{ checksum "package.json" }}
-
-      - run: yarn test
-
       - setup_remote_docker:
           version: 17.05.0-ce
 
@@ -64,7 +39,7 @@ jobs:
             docker build -t docker.uncharted.software/bringmehome:$TAG .
             docker build -t docker.uncharted.software/bringmehome:latest .
 
-      - run:
+      - deploy:
           name: Push Docker image
           command: |
             TAG="1.0.${CIRCLE_BUILD_NUM}"
@@ -72,17 +47,12 @@ jobs:
             docker push docker.uncharted.software/bringmehome:$TAG
             docker push docker.uncharted.software/bringmehome:latest
 
-      - run:
+      - add_ssh_keys:
+          fingerprints:
+            - "15:35:c9:04:c5:eb:65:11:53:af:66:0f:6c:22:9c:36"
+
+      - deploy:
           name: Deploy to Swarm
           command: |
             # scp ~/repo/docker-compose.yml core@${SWARM_ADDRESS}:/tmp/${CIRCLE_PROJECT_REPONAME}-${CIRCLE_BUILD_NUM}-docker-compose.yml
             # ssh core@${SWARM_ADDRESS} 'bash -s' < ~/repo/deploy/swarm_deploy.sh ${DOCKER_USER} ${DOCKER_PASS} ${CIRCLE_PROJECT_REPONAME}-${CIRCLE_BUILD_NUM} ${CIRCLE_PROJECT_REPONAME}
-
-workflows:
-  version: 2
-  build:
-    jobs:
-      - build
-  deploy:
-    jobs:
-      - deploy
