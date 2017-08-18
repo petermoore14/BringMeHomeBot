@@ -1,7 +1,6 @@
 FROM nodesource/node:6.3
 
 RUN apt-get update
-RUN apt-get dist-upgrade -y
 RUN apt-get install -y supervisor
 RUN mkdir -p /var/log/supervisor
 

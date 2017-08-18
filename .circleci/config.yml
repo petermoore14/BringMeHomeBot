@@ -26,7 +26,7 @@ jobs:
       - deploy:
           name: Push Docker image
           command: |
-            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+            if [ "${CIRCLE_BRANCH}" != "master" ]; then
               TAG="1.0.${CIRCLE_BUILD_NUM}"
               docker login docker.uncharted.software -u${DOCKER_USER} -p${DOCKER_PASS}
               docker push docker.uncharted.software/bringmehome:$TAG
@@ -40,7 +40,7 @@ jobs:
       - deploy:
           name: Deploy to Swarm
           command: |
-            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+            if [ "${CIRCLE_BRANCH}" != "master" ]; then
               scp ~/repo/docker-compose.yml core@${SWARM_ADDRESS}:/tmp/${CIRCLE_PROJECT_REPONAME}-${CIRCLE_BUILD_NUM}-docker-compose.yml
               ssh core@${SWARM_ADDRESS} 'bash -s' < ~/repo/deploy/swarm_deploy.sh ${DOCKER_USER} ${DOCKER_PASS} ${CIRCLE_PROJECT_REPONAME}-${CIRCLE_BUILD_NUM} ${CIRCLE_PROJECT_REPONAME};
             fi
