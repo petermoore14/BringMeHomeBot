@@ -31,6 +31,7 @@ jobs:
               docker login docker.uncharted.software -u${DOCKER_USER} -p${DOCKER_PASS}
               docker push docker.uncharted.software/bringmehome:$TAG
               docker push docker.uncharted.software/bringmehome:latest
+              ;
             fi
 
       - add_ssh_keys:
@@ -43,4 +44,5 @@ jobs:
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
               # scp ~/repo/docker-compose.yml core@${SWARM_ADDRESS}:/tmp/${CIRCLE_PROJECT_REPONAME}-${CIRCLE_BUILD_NUM}-docker-compose.yml
               # ssh core@${SWARM_ADDRESS} 'bash -s' < ~/repo/deploy/swarm_deploy.sh ${DOCKER_USER} ${DOCKER_PASS} ${CIRCLE_PROJECT_REPONAME}-${CIRCLE_BUILD_NUM} ${CIRCLE_PROJECT_REPONAME}
+              ;
             fi
