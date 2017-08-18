@@ -28,7 +28,7 @@ jobs:
           command: |
             if [ "${CIRCLE_BRANCH}" != "master" ]; then
               TAG="1.0.${CIRCLE_BUILD_NUM}"
-              docker login docker.uncharted.software -u${DOCKER_USER} -p${DOCKER_PASS}
+              docker login docker.uncharted.software -u=$"{DOCKER_USER}" -p="${DOCKER_PASS}"
               docker push docker.uncharted.software/bringmehome:$TAG
               docker push docker.uncharted.software/bringmehome:latest;
             fi
