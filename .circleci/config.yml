@@ -29,9 +29,6 @@ jobs:
 
       - run: yarn test
 
-      - setup_remote_docker:
-          version: 17.05.0-ce
-
   deploy:
     docker:
       - image: circleci/node:7.10
@@ -39,6 +36,9 @@ jobs:
     working_directory: ~/repo
 
     steps:
+      - setup_remote_docker:
+          version: 17.05.0-ce
+      
       - run:
           name: Build Docker image
           command: |
@@ -47,3 +47,13 @@ jobs:
             docker login docker.uncharted.software -u ${DOCKER_USER} -p ${DOCKER_PASS}
             # scp ~/repo/docker-compose.yml core@${SWARM_ADDRESS}:/tmp/${CIRCLE_PROJECT_REPONAME}-${CIRCLE_BUILD_NUM}-docker-compose.yml
             # ssh core@${SWARM_ADDRESS} 'bash -s' < ~/repo/deploy/swarm_deploy.sh ${DOCKER_USER} ${DOCKER_PASS} ${CIRCLE_PROJECT_REPONAME}-${CIRCLE_BUILD_NUM} ${CIRCLE_PROJECT_REPONAME}
+
+workflows:
+  version: 2
+  build_test:
+    jobs:
+      - build
+  build_test_deploy:
+    jobs:
+      - build
+      - deploy
