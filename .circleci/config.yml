@@ -41,12 +41,12 @@ jobs:
           name: Copy stack to Swarm
           command: |
             if [ "${CIRCLE_BRANCH}" != "master" ]; then
-              scp ~/repo/docker-compose.yml core@${SWARM_ADDRESS}:/tmp/${CIRCLE_PROJECT_REPONAME}-${CIRCLE_BUILD_NUM}-docker-compose.yml
+              scp -oStrictHostKeyChecking=no ~/repo/docker-compose.yml core@${SWARM_ADDRESS}:/tmp/${CIRCLE_PROJECT_REPONAME}-${CIRCLE_BUILD_NUM}-docker-compose.yml
             fi
 
       - deploy:
           name: Deploy to Swarm
           command: |
             if [ "${CIRCLE_BRANCH}" != "master" ]; then
-              ssh core@${SWARM_ADDRESS} 'bash -s' < ~/repo/deploy/swarm_deploy.sh ${DOCKER_USER} ${DOCKER_PASS} ${CIRCLE_PROJECT_REPONAME}-${CIRCLE_BUILD_NUM} ${CIRCLE_PROJECT_REPONAME};
+              ssh -oStrictHostKeyChecking=no core@${SWARM_ADDRESS} 'bash -s' < ~/repo/deploy/swarm_deploy.sh ${DOCKER_USER} ${DOCKER_PASS} ${CIRCLE_PROJECT_REPONAME}-${CIRCLE_BUILD_NUM} ${CIRCLE_PROJECT_REPONAME};
             fi
