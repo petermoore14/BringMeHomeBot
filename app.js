@@ -1,3 +1,19 @@
+/*
+ * Copyright 2017 Uncharted Software Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+ 
 const http = require('http');
 
 const Twitter = require('twitter');
@@ -7,10 +23,10 @@ const filter = require('./streams/filters');
 const error = require('./streams/error');
 
 const conn = {
-    consumer_key: env.parsed.consumer_key,
-    consumer_secret: env.parsed.consumer_secret,
-    access_token_key: env.parsed.access_token_key,
-    access_token_secret: env.parsed.access_token_secret
+    consumer_key: process.env.consumer_key,
+    consumer_secret: process.env.consumer_secret,
+    access_token_key: process.env.access_token_key,
+    access_token_secret: process.env.access_token_secret
 };
 
 
@@ -22,7 +38,7 @@ client.get('application/rate_limit_status', (err,response) => {
     if (err) console.log(JSON.stringify(err));
 });
 
-console.log('Created connection to Twitter api');
+console.log('Created connection to Twitter api for ' + conn.consumer_key);
 
 const startStream = (client, streamParams) => { 
     client.stream('statuses/filter', streamParams, (stream) => {
@@ -53,4 +69,4 @@ const server = http.createServer((request, response) => {
     response.end("Up\n");
 });
 
-server.listen(env.parsed.server_listen_port);
+server.listen(process.env.server_listen_port);

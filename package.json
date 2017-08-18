@@ -1,13 +1,16 @@
 {
-  "name": "lighthouse_test",
+  "name": "BringMeHomeBot",
   "version": "1.0.0",
-  "description": "twitter stream missing persons test",
+  "description": "twitter bot for missing persons",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node app",
+    "test": "echo \"Error: no tests\" && exit 0"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "tellfinder@uncharted.software",
+  "readme": "README.md",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/unchartedsoftware/BringMeHomeBot",
   "dependencies": {
     "@slack/client": "^3.11.0",
     "bitly": "^4.1.1",

@@ -1,0 +1,27 @@
+version: '3'
+services:
+  bringmehome:
+    image: docker.uncharted.software/bringmehome:latest
+    ports:
+      - 3010:3010
+    environment:
+      - consumer_key=${consumer_key}
+      - consumer_secret=${consumer_secret}
+      - access_token_key=${access_token_key}
+      - access_token_secret=${access_token_secret}
+      - limit_direct_messages=${limit_direct_messages}
+      - direct_message_recipient=${direct_message_recipient}
+      - hash_secret=${hash_secret}
+      - bitly=${bitly}
+      - baseUrl=${baseUrl}
+      - server_listen_port=3010
+    networks:
+      bringmehome:
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          memory: 1G
+
+networks:
+  bringmehome:
