@@ -13,22 +13,6 @@ jobs:
     steps:
       - checkout
 
-      # Download and cache dependencies
-      - restore_cache:
-          keys:
-          - v1-dependencies-{{ checksum "package.json" }}
-          # fallback to using the latest cache if no exact match is found
-          - v1-dependencies-
-
-      - run: yarn install
-
-      - save_cache:
-          paths:
-            - node_modules
-          key: v1-dependencies-{{ checksum "package.json" }}
-
-      - run: yarn test
-
       - setup_remote_docker:
           version: 17.05.0-ce
 
@@ -42,10 +26,12 @@ jobs:
       - deploy:
           name: Push Docker image
           command: |
-            TAG="1.0.${CIRCLE_BUILD_NUM}"
-            docker login docker.uncharted.software -u ${DOCKER_USER} -p ${DOCKER_PASS}
-            docker push docker.uncharted.software/bringmehome:$TAG
-            docker push docker.uncharted.software/bringmehome:latest
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+              TAG="1.0.${CIRCLE_BUILD_NUM}"
+              docker login docker.uncharted.software -u${DOCKER_USER} -p${DOCKER_PASS}
+              docker push docker.uncharted.software/bringmehome:$TAG
+              docker push docker.uncharted.software/bringmehome:latest
+            fi
 
       - add_ssh_keys:
           fingerprints:
@@ -54,5 +40,7 @@ jobs:
       - deploy:
           name: Deploy to Swarm
           command: |
-            # scp ~/repo/docker-compose.yml core@${SWARM_ADDRESS}:/tmp/${CIRCLE_PROJECT_REPONAME}-${CIRCLE_BUILD_NUM}-docker-compose.yml
-            # ssh core@${SWARM_ADDRESS} 'bash -s' < ~/repo/deploy/swarm_deploy.sh ${DOCKER_USER} ${DOCKER_PASS} ${CIRCLE_PROJECT_REPONAME}-${CIRCLE_BUILD_NUM} ${CIRCLE_PROJECT_REPONAME}
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+              # scp ~/repo/docker-compose.yml core@${SWARM_ADDRESS}:/tmp/${CIRCLE_PROJECT_REPONAME}-${CIRCLE_BUILD_NUM}-docker-compose.yml
+              # ssh core@${SWARM_ADDRESS} 'bash -s' < ~/repo/deploy/swarm_deploy.sh ${DOCKER_USER} ${DOCKER_PASS} ${CIRCLE_PROJECT_REPONAME}-${CIRCLE_BUILD_NUM} ${CIRCLE_PROJECT_REPONAME}
+            fi
