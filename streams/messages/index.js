@@ -17,7 +17,7 @@
 const env = require('dotenv').config();
 const IncomingWebhook = require('@slack/client').IncomingWebhook;
 
-const url = env.parsed.slackUrl;
+const url = process.env.slackUrl;
 const webhook = new IncomingWebhook(url);
 //params needs to be user_id || screen_name and text e.g {user_id:22123, text: 'hello'}
 module.exports.sendMessage = (client, params, tweetLink) => {
