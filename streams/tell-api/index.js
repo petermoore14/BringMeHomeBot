@@ -21,7 +21,7 @@ const env = require('dotenv').config();
 var sha1 = require('sha1');
 
 //todo hook into tellfinder face matching api
-module.exports.callFaceApi = (imageArray, tweetClient, user) => {
+module.exports.callFaceApi = (imageArray, tweetClient, user, tweetLink) => {
     const baseUrl = env.parsed.baseUrl;
     const sim = '/v1/similarimages';
     const bitly = new Bitly(env.parsed.bitly);
@@ -39,7 +39,7 @@ module.exports.callFaceApi = (imageArray, tweetClient, user) => {
                 bitly.shorten(bringMeHomeUrl)
                 .then((response) => {
                     var short_url = response.data.url
-                    messages.sendMessage(tweetClient, {user_id: user, text: 'More information about Missing indidual at: ' + short_url });
+                    messages.sendMessage(tweetClient, {user_id: user, text: 'More information about Missing individual at: ' + short_url }, tweetLink);
                 }, (error) => {
                     throw error;
                 });
