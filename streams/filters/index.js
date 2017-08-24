@@ -19,7 +19,7 @@ const callTellfinder = require('../tell-api')
 const env = require('dotenv').config();
 module.exports.streamFilter  = (tweet, client) => {
     console.log("Recieved tweet: " + tweet.text);
-    if(getMissing(tweet)){
+    if(getMissing(tweet) && tweet.retweeted == false){
         const imgs = getImages(tweet);
         if(checkIsImages(imgs).length > 0){
             const user = env.parsed.limit_direct_messages === 'true' ? env.parsed.direct_message_recipient : tweet.user.id_str;
