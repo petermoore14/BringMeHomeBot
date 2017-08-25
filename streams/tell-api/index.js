@@ -22,20 +22,29 @@ var sha1 = require('sha1');
 
 //todo hook into tellfinder face matching api
 module.exports.callFaceApi = (imageArray, tweetClient, user, tweetLink) => {
-    const baseUrl = env.parsed.baseUrl;
-    const sim = '/v1/similarimages';
+    const apiBaseUrl = env.parsed.apiBaseUrl;
+    const sim = '/similarimages';
     const bitly = new Bitly(env.parsed.bitly);
-    //go through each image
+
+    // For each image in the tweet, call the face API and check for matching images
     imageArray.forEach(img => {
-        //call facematching api
+
         console.log('Calling Similar Image API for image: ' + img);
-        rp(options(baseUrl + sim, img)).then(res => {
-            // if we get at least one match create link to bring me home static page
+
+        rp(options(apiBaseUrl + sim, img)).then(res => {
+
+            // If there are image hits, notify the corresponding account
             if(res.similarHashes.length > 0){
                 console.log('HIT FOUND: ' + img);
+
                 const hash = computeHash(img);
                 const encodedUri = encodeURIComponent(img);
-                const bringMeHomeUrl =  baseUrl + '/bringmehome?url=' + encodedUri + '&hash=' + hash.toUpperCase();
+                const deploymentBaseUrl = env.parsed.deploymentBaseUrl
+                const bringMeHomeUrl =  deploymentBaseUrl + '/bringmehome?url=' + encodedUri + '&hash=' + hash.toUpperCase();
+
+                console.log('URL: ' + bringMeHomeUrl);
+
+                // Shorten the URL link to the bringmehome endpoint in tellfinder and notify the account
                 bitly.shorten(bringMeHomeUrl)
                 .then((response) => {
                     var short_url = response.data.url
@@ -50,7 +59,7 @@ module.exports.callFaceApi = (imageArray, tweetClient, user, tweetLink) => {
             throw err
          });
     });
-}
+};
 
 const options = (url, img) => {
     return {
@@ -59,14 +68,13 @@ const options = (url, img) => {
         body: {
             url:img
         },
-        auth:{
-            user:'tf2api@uncharted.software',
-            pass:'tf2api1234'
+        headers: {
+            'x-api-key':  env.parsed.tellfinder_api_key
         },
         json: true
     }
-}
+};
 
 const computeHash = (img) =>{
     return sha1(img + env.parsed.hash_secret)
-}
+};
