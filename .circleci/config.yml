@@ -39,7 +39,7 @@ jobs:
           working_directory: /
           command: |
             sudo apt install python-pip python-dev
-            pip install awscli
+            sudo pip install awscli
 
       - deploy:
           name: Push Docker image
