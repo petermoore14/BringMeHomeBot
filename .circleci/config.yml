@@ -75,5 +75,5 @@ jobs:
           name: Deploy to Swarm
           command: |
             if [ "${CIRCLE_BRANCH}" != "master" ]; then
-              ssh -oStrictHostKeyChecking=no core@${SWARM_ADDRESS} 'bash -s' < ~/repo/deploy/swarm_deploy.sh ${DOCKER_REPO} ${DOCKER_USER} ${DOCKER_PASS} ${CIRCLE_PROJECT_REPONAME}-${CIRCLE_BUILD_NUM} ${CIRCLE_PROJECT_REPONAME};
+              ssh -oStrictHostKeyChecking=no core@${SWARM_ADDRESS} 'bash -s' < ~/repo/deploy/swarm_deploy.sh ${DOCKER_REPO} ${AWS_ACCESS_KEY_ID} ${AWS_SECRET_ACCESS_KEY} ${CIRCLE_PROJECT_REPONAME}-${CIRCLE_BUILD_NUM} ${CIRCLE_PROJECT_REPONAME};
             fi
