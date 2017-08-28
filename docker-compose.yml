@@ -4,20 +4,7 @@ services:
     image: docker.uncharted.software/bringmehome:latest
     ports:
       - 3010:3010
-    environment:
-      - consumer_key=${consumer_key}
-      - consumer_secret=${consumer_secret}
-      - access_token_key=${access_token_key}
-      - access_token_secret=${access_token_secret}
-      - limit_direct_messages=${limit_direct_messages}
-      - direct_message_recipient=${direct_message_recipient}
-      - hash_secret=${hash_secret}
-      - bitly=${bitly}
-      - apiBaseUrl=${apiBaseUrl}
-      - deploymentBaseUrl=${deploymentBaseUrl}
-      - tellfinder_api_key=${tellfinder_api_key}
-      - slackUrl=${slackUrl}
-      - server_listen_port=3010
+    env_file: .env
     networks:
       bringmehome:
     deploy:
