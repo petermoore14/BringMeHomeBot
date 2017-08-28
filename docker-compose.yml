@@ -1,7 +1,7 @@
 version: '3'
 services:
   bringmehome:
-    image: 367503544245.dkr.ecr.us-east-1.amazonaws.com/bringmehome:latest
+    image: docker.uncharted.software/bringmehome:latest
     ports:
       - 3010:3010
     env_file: .env
