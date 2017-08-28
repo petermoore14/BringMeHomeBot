@@ -38,7 +38,8 @@ jobs:
           name: Install AWS
           working_directory: /
           command: |
-            sudo apt-get -y -qq install awscli
+            sudo apt install python-pip python-dev
+            pip install awscli
 
       - deploy:
           name: Push Docker image
