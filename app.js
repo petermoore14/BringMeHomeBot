@@ -13,14 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+// Load the environment
+require('node-env-file')('.env', {raise: false});
  
 const http = require('http');
-
 const Twitter = require('twitter');
-const env = require('dotenv').config();
-
 const filter = require('./streams/filters');
 const error = require('./streams/error');
+
 
 const conn = {
     consumer_key: process.env.consumer_key,
@@ -47,12 +48,12 @@ const startStream = (client, streamParams) => {
     });
 };
 
-client.get('friends/list', (error, friends, response) => {
+client.get('friends/list', (error, friends) => {
     if(error) {
         console.log(error);
     }
     const following = friends.users.map(friend => friend.id_str).toString();
-    const friendlyFollowers = friends.users.map(friend => friend.name).toString()
+    const friendlyFollowers = friends.users.map(friend => friend.name).toString();
     console.log('Following:' + friendlyFollowers);
 
     const streamParameters = {
@@ -64,9 +65,10 @@ client.get('friends/list', (error, friends, response) => {
 // Load the http module to create an http server.
 
 // // Configure our HTTP server to respond with Hello World to all requests.
+const upDate = new Date();
 const server = http.createServer((request, response) => {
-    response.writeHead(200, {"Content-Type": "text/plain"});
-    response.end("Up\n");
+    response.writeHead(200, {'Content-Type': 'text/plain'});
+    response.end('Up since ' + upDate.toISOString());
 });
 
 server.listen(process.env.server_listen_port);

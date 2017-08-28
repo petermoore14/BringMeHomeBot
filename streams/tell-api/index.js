@@ -17,14 +17,12 @@
 var rp = require('request-promise');
 var Bitly = require('bitly');
 const messages = require('../messages');
-const env = require('dotenv').config();
 var sha1 = require('sha1');
 
-//todo hook into tellfinder face matching api
-module.exports.callFaceApi = (imageArray, tweetClient, user, tweetLink) => {
-    const apiBaseUrl = env.parsed.apiBaseUrl;
+module.exports.callImageApi = (imageArray, tweetClient, user, tweetLink) => {
+    const apiBaseUrl = process.env.apiBaseUrl;
     const sim = '/similarimages';
-    const bitly = new Bitly(env.parsed.bitly);
+    const bitly = new Bitly(process.env.bitly);
 
     // For each image in the tweet, call the face API and check for matching images
     imageArray.forEach(img => {
@@ -39,7 +37,7 @@ module.exports.callFaceApi = (imageArray, tweetClient, user, tweetLink) => {
 
                 const hash = computeHash(img);
                 const encodedUri = encodeURIComponent(img);
-                const deploymentBaseUrl = env.parsed.deploymentBaseUrl
+                const deploymentBaseUrl = process.env.deploymentBaseUrl;
                 const bringMeHomeUrl =  deploymentBaseUrl + '/bringmehome?url=' + encodedUri + '&hash=' + hash.toUpperCase();
 
                 console.log('URL: ' + bringMeHomeUrl);
@@ -47,7 +45,7 @@ module.exports.callFaceApi = (imageArray, tweetClient, user, tweetLink) => {
                 // Shorten the URL link to the bringmehome endpoint in tellfinder and notify the account
                 bitly.shorten(bringMeHomeUrl)
                 .then((response) => {
-                    var short_url = response.data.url
+                    var short_url = response.data.url;
                     messages.sendMessage(tweetClient, {user_id: user, text: 'More information about Missing individual at: ' + short_url }, tweetLink);
                 }, (error) => {
                     throw error;
@@ -69,12 +67,12 @@ const options = (url, img) => {
             url:img
         },
         headers: {
-            'x-api-key':  env.parsed.tellfinder_api_key
+            'x-api-key':  process.env.tellfinder_api_key
         },
         json: true
     }
 };
 
 const computeHash = (img) =>{
-    return sha1(img + env.parsed.hash_secret)
+    return sha1(img + process.env.hash_secret)
 };
