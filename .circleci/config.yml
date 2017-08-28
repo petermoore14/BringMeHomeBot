@@ -11,7 +11,7 @@
 # 5. SWARM_SSH_KEY: Fingerprint of an SSH key you've added to CircleCI for ssh to your swarm
 # 6. ENV_FILE: The Base64 encoded contents of your .env file, like this:
 #
-#      cat .env | openssl base64
+#      cat .env | openssl base64 -A
 #
 version: 2
 jobs:
@@ -58,9 +58,7 @@ jobs:
           name: Copy .env to Swarm
           command: |
             if [ "${CIRCLE_BRANCH}" != "master" ]; then
-              echo "${ENV_FILE}"
-              echo "${ENV_FILE}" | openssl base64 -d
-              echo "${ENV_FILE}" | openssl base64 -d > ~/repo/.env
+              echo "${ENV_FILE}" | openssl base64 -A -d > ~/repo/.env
               scp -oStrictHostKeyChecking=no ~/repo/.env core@${SWARM_ADDRESS}:/tmp/.env;
               ssh -oStrictHostKeyChecking=no core@${SWARM_ADDRESS} 'cat /tmp/.env';
             fi
