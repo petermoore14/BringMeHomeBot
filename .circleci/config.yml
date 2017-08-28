@@ -4,9 +4,9 @@
 #
 # Before you begin, you need CircleCI environment variables:
 #
-# 1. AWS_ACCESS_KEY_ID: AWS account that has the Docker Repo
-# 2. AWS_SECRET_ACCESS_KEY: AWS account that has the Docker Repo
-# 3. DOCKER_REPO: url for docker repo
+# 1. DOCKER_USER: user for docker login
+# 2. DOCKER_PASS: password for docker login
+# 3. DOCKER_REPO: url for docker login
 # 4. SWARM_ADDRESS: IP address to ssh for your swarm
 # 5. SWARM_SSH_KEY: Fingerprint of an SSH key you've added to CircleCI for ssh to your swarm
 # 6. ENV_FILE: The Base64 encoded contents of your .env file, like this:
@@ -68,5 +68,5 @@ jobs:
           name: Deploy to Swarm
           command: |
             if [ "${CIRCLE_BRANCH}" != "master" ]; then
-              ssh -oStrictHostKeyChecking=no core@${SWARM_ADDRESS} 'bash -s' < ~/repo/deploy/swarm_deploy.sh ${DOCKER_REPO} ${AWS_ACCESS_KEY_ID} ${AWS_SECRET_ACCESS_KEY} ${CIRCLE_PROJECT_REPONAME}-${CIRCLE_BUILD_NUM} ${CIRCLE_PROJECT_REPONAME};
+              ssh -oStrictHostKeyChecking=no core@${SWARM_ADDRESS} 'bash -s' < ~/repo/deploy/swarm_deploy.sh ${DOCKER_REPO} ${DOCKER_USER} ${DOCKER_PASS} ${CIRCLE_PROJECT_REPONAME}-${CIRCLE_BUILD_NUM} ${CIRCLE_PROJECT_REPONAME};
             fi
