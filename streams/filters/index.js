@@ -15,34 +15,51 @@
  */
 
 const chalk = require('chalk');
-const callTellfinder = require('../tell-api')
-const env = require('dotenv').config();
+const callTellfinder = require('../tell-api');
+
 module.exports.streamFilter  = (tweet, client) => {
+
     console.log("Recieved tweet: " + tweet.text);
+
+    // If it is not a retweet and it is a missing persons related tweet
     if(getMissing(tweet) && tweet.retweeted == false){
-        const imgs = getImages(tweet);
-        if(checkIsImages(imgs).length > 0){
-            const user = env.parsed.limit_direct_messages === 'true' ? env.parsed.direct_message_recipient : tweet.user.id_str;
-            const tweetLink = `http://twitter.com/${tweet.user.id_str}/status/${tweet.id_str}`
-            callTellfinder.callFaceApi(imgs, client, user, tweetLink);
+
+        // Get the images/media from the tweet
+        const imageUrls = getImages(tweet);
+
+        if(imageUrls.length > 0){
+
+            const user = process.env.limit_direct_messages === 'true' ? process.env.direct_message_recipient : tweet.user.id_str;
+            const tweetLink = `http://twitter.com/${tweet.user.id_str}/status/${tweet.id_str}`;
+
+            // Invoke the TellFinder similar image API
+            callTellfinder.callImageApi(imageUrls, client, user, tweetLink);
         } else {
             console.log(chalk.red('ERROR: no image'));
         }
     }
 };
 
+/**
+ * Ensures that a tweet is related to a missing person
+ * @param tweet         the tweet object
+ * @returns {boolean}   true if it should be processed by TellFinder, false otherwise
+ */
 const getMissing = (tweet) => {
   return tweet.text.includes('MISSING:');
-}
+};
 
+/**
+ * Get an array of images from the tweet object
+ * @param tweet         the tweet instance
+ * @returns {Array}     an array of image urls
+ */
 const getImages = (tweet) => {
   const mediaArr = tweet.extended_entities && tweet.extended_entities.media;
   if(mediaArr && mediaArr.length) {
-      return mediaArr.map(media => media.media_url);
+      return mediaArr
+          .map(media => media.media_url)
+          .filter(url => url.endsWith('.jpg') || url.endsWith('.png'));
   }
   return [];
-}
-
-const checkIsImages = (urls) => {
-    return urls.filter(url => url.endsWith('.jpg') || url.endsWith('.png'));
-}
+};

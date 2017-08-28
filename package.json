@@ -15,7 +15,7 @@
     "@slack/client": "^3.11.0",
     "bitly": "^4.1.1",
     "chalk": "^2.1.0",
-    "dotenv": "^4.0.0",
+    "node-env-file": "^0.1.8",
     "request": "^2.81.0",
     "request-promise": "^4.2.1",
     "sha1": "^1.1.1",
