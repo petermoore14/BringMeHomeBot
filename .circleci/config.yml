@@ -4,9 +4,9 @@
 #
 # Before you begin, you need CircleCI environment variables:
 #
-# 1. DOCKER_USER: username for docker login
-# 2. DOCKER_PASS: password for docker login
-# 3. DOCKER_REPO: url for docker login
+# 1. AWS_ACCESS_KEY_ID: AWS account that has the Docker Repo
+# 2. AWS_SECRET_ACCESS_KEY: AWS account that has the Docker Repo
+# 3. DOCKER_REPO: url for docker repo
 # 4. SWARM_ADDRESS: IP address to ssh for your swarm
 # 5. SWARM_SSH_KEY: Fingerprint of an SSH key you've added to CircleCI for ssh to your swarm
 # 6. ENV_FILE: The Base64 encoded contents of your .env file, like this:
@@ -34,12 +34,18 @@ jobs:
             docker build -t ${DOCKER_REPO}/bringmehome:$TAG .
             docker build -t ${DOCKER_REPO}/bringmehome:latest .
 
+      - run:
+          name: Install AWS
+          working_directory: /
+          command: |
+            sudo apt-get -y -qq install awscli
+
       - deploy:
           name: Push Docker image
           command: |
             if [ "${CIRCLE_BRANCH}" != "master" ]; then
               TAG="1.0.${CIRCLE_BUILD_NUM}"
-              docker login ${DOCKER_REPO} --username "${DOCKER_USER}" --password "${DOCKER_PASS}"
+              `aws ecr get-login --no-include-email --region us-east-1`
               docker push ${DOCKER_REPO}/bringmehome:$TAG
               docker push ${DOCKER_REPO}/bringmehome:latest;
             fi
