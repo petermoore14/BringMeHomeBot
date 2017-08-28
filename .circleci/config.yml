@@ -2,6 +2,17 @@
 #
 # Check https://circleci.com/docs/2.0/language-javascript/ for more details
 #
+# Before you begin, you need CircleCI environment variables:
+#
+# 1. DOCKER_USER: username for docker login
+# 2. DOCKER_PASS: password for docker login
+# 3. DOCKER_REPO: url for docker login
+# 4. SWARM_ADDRESS: IP address to ssh for your swarm
+# 5. SWARM_SSH_KEY: Fingerprint of an SSH key you've added to CircleCI for ssh to your swarm
+# 6. ENV_FILE: The Base64 encoded contents of your .env file, like this:
+#
+#      cat .env | openssl base64
+#
 version: 2
 jobs:
   build:
@@ -20,22 +31,22 @@ jobs:
           name: Build Docker image
           command: |
             TAG="1.0.${CIRCLE_BUILD_NUM}"
-            docker build -t docker.uncharted.software/bringmehome:$TAG .
-            docker build -t docker.uncharted.software/bringmehome:latest .
+            docker build -t ${DOCKER_REPO}/bringmehome:$TAG .
+            docker build -t ${DOCKER_REPO}/bringmehome:latest .
 
       - deploy:
           name: Push Docker image
           command: |
             if [ "${CIRCLE_BRANCH}" != "master" ]; then
               TAG="1.0.${CIRCLE_BUILD_NUM}"
-              docker login docker.uncharted.software --username "${DOCKER_USER}" --password "${DOCKER_PASS}"
-              docker push docker.uncharted.software/bringmehome:$TAG
-              docker push docker.uncharted.software/bringmehome:latest;
+              docker login ${DOCKER_REPO} --username "${DOCKER_USER}" --password "${DOCKER_PASS}"
+              docker push ${DOCKER_REPO}/bringmehome:$TAG
+              docker push ${DOCKER_REPO}/bringmehome:latest;
             fi
 
       - add_ssh_keys:
           fingerprints:
-            - "15:35:c9:04:c5:eb:65:11:53:af:66:0f:6c:22:9c:36"
+            - "${SWARM_SSH_KEY}"
 
       - deploy:
           name: Copy .env to Swarm
@@ -43,7 +54,6 @@ jobs:
             if [ "${CIRCLE_BRANCH}" != "master" ]; then
               echo "${ENV_FILE}" | openssl base64 -d > ~/repo/.env
               scp -oStrictHostKeyChecking=no ~/repo/.env core@${SWARM_ADDRESS}:/tmp/.env;
-              ssh -oStrictHostKeyChecking=no core@${SWARM_ADDRESS} 'ls -al /tmp/.env';
             fi
 
       - deploy:
@@ -51,12 +61,11 @@ jobs:
           command: |
             if [ "${CIRCLE_BRANCH}" != "master" ]; then
               scp -oStrictHostKeyChecking=no ~/repo/docker-compose.yml core@${SWARM_ADDRESS}:/tmp/${CIRCLE_PROJECT_REPONAME}-${CIRCLE_BUILD_NUM}-docker-compose.yml;
-              ssh -oStrictHostKeyChecking=no core@${SWARM_ADDRESS} 'ls -al /tmp/${CIRCLE_PROJECT_REPONAME}-${CIRCLE_BUILD_NUM}-docker-compose.yml';
             fi
 
       - deploy:
           name: Deploy to Swarm
           command: |
             if [ "${CIRCLE_BRANCH}" != "master" ]; then
-              ssh -oStrictHostKeyChecking=no core@${SWARM_ADDRESS} 'bash -s' < ~/repo/deploy/swarm_deploy.sh ${DOCKER_USER} ${DOCKER_PASS} ${CIRCLE_PROJECT_REPONAME}-${CIRCLE_BUILD_NUM} ${CIRCLE_PROJECT_REPONAME};
+              ssh -oStrictHostKeyChecking=no core@${SWARM_ADDRESS} 'bash -s' < ~/repo/deploy/swarm_deploy.sh ${CIRCLE_PROJECT_REPONAME}-${CIRCLE_BUILD_NUM} ${CIRCLE_PROJECT_REPONAME};
             fi
