@@ -52,6 +52,7 @@ jobs:
           name: Copy .env to Swarm
           command: |
             if [ "${CIRCLE_BRANCH}" != "master" ]; then
+              echo "${ENV_FILE}" | openssl base64 -A -d > ~/repo/.env
               scp -oStrictHostKeyChecking=no ~/repo/.env core@${SWARM_ADDRESS}:/tmp/.env;
             fi
 
