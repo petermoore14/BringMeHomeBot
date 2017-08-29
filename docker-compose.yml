@@ -3,7 +3,7 @@ services:
   bringmehome:
     image: docker.uncharted.software/bringmehome:latest
     ports:
-      - 3010:3010
+      - 80:3010
     env_file: .env
     networks:
       bringmehome:
