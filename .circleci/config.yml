@@ -37,7 +37,7 @@ jobs:
       - deploy:
           name: Push Docker image
           command: |
-            if [ "${CIRCLE_BRANCH}" != "master" ]; then
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
               TAG="1.0.${CIRCLE_BUILD_NUM}"
               docker login ${DOCKER_REPO} --username ${DOCKER_USER} --password ${DOCKER_PASS}
               docker push ${DOCKER_REPO}/bringmehome:$TAG
@@ -51,7 +51,7 @@ jobs:
       - deploy:
           name: Copy .env to Swarm
           command: |
-            if [ "${CIRCLE_BRANCH}" != "master" ]; then
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
               echo "${ENV_FILE}" | openssl base64 -A -d > ~/repo/.env
               scp -oStrictHostKeyChecking=no ~/repo/.env core@${SWARM_ADDRESS}:/tmp/.env;
             fi
@@ -59,13 +59,13 @@ jobs:
       - deploy:
           name: Copy stack to Swarm
           command: |
-            if [ "${CIRCLE_BRANCH}" != "master" ]; then
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
               scp -oStrictHostKeyChecking=no ~/repo/docker-compose.yml core@${SWARM_ADDRESS}:/tmp/${CIRCLE_PROJECT_REPONAME}-${CIRCLE_BUILD_NUM}-docker-compose.yml;
             fi
 
       - deploy:
           name: Deploy to Swarm
           command: |
-            if [ "${CIRCLE_BRANCH}" != "master" ]; then
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
               ssh -oStrictHostKeyChecking=no core@${SWARM_ADDRESS} 'bash -s' < ~/repo/deploy/swarm_deploy.sh ${DOCKER_REPO} ${DOCKER_USER} ${DOCKER_PASS} ${CIRCLE_PROJECT_REPONAME}-${CIRCLE_BUILD_NUM} ${CIRCLE_PROJECT_REPONAME};
             fi
