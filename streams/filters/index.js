@@ -24,10 +24,18 @@ const webhook = new IncomingWebhook(url);
 
 module.exports.streamFilter  = (tweet, client) => {
 
-    console.log("Recieved tweet: " + tweet.text);
+    // Ignore if this is a retweet
+    if (isRetweet(tweet)) {
+        return;
+    }
+
+    const tweetText = tweet.text;
+    const tweetAuthor = tweet.user.screen_name;
+
+    console.log('Received tweet by ' + tweetAuthor + ': ' + tweetText);
 
     // If it is not a retweet and it is a missing persons related tweet
-    if(getMissing(tweet) && tweet.retweeted == false){
+    if(getMissing(tweet)){
 
         // Get the images/media from the tweet
         const imageUrls = getImages(tweet);
@@ -51,7 +59,7 @@ module.exports.streamFilter  = (tweet, client) => {
             callTellfinder.callImageApi(imageUrls, client, user, tweetLink);
 
         } else {
-            console.log(chalk.red('ERROR: no image'));
+            console.log('No image found in tweet');
         }
     }
 };
@@ -63,6 +71,15 @@ module.exports.streamFilter  = (tweet, client) => {
  */
 const getMissing = (tweet) => {
   return tweet.text.includes('MISSING:');
+};
+
+/**
+ * Checks if a tweet is a retweet
+ * @param tweet         the tweet object
+ * @returns {boolean}   true if this was a retweet, false otherwise
+ */
+const isRetweet = (tweet) => {
+    return tweet.hasOwnProperty('retweeted_status');
 };
 
 /**
