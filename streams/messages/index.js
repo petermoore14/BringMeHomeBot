@@ -16,7 +16,7 @@
  */
 const IncomingWebhook = require('@slack/client').IncomingWebhook;
 
-const url = process.env.slackUrl;
+const url = process.env.slackHitUrl;
 const webhook = new IncomingWebhook(url);
 
 //params needs to be user_id || screen_name and text e.g {user_id:22123, text: 'hello'}

@@ -17,6 +17,11 @@
 const chalk = require('chalk');
 const callTellfinder = require('../tell-api');
 
+const IncomingWebhook = require('@slack/client').IncomingWebhook;
+
+const url = process.env.slackSearchUrl;
+const webhook = new IncomingWebhook(url);
+
 module.exports.streamFilter  = (tweet, client) => {
 
     console.log("Recieved tweet: " + tweet.text);
@@ -32,8 +37,19 @@ module.exports.streamFilter  = (tweet, client) => {
             const user = process.env.limit_direct_messages === 'true' ? process.env.direct_message_recipient : tweet.user.id_str;
             const tweetLink = `http://twitter.com/${tweet.user.id_str}/status/${tweet.id_str}`;
 
+            // Log the message to slack
+            const slackMessage = `Executing TellFinder search for tweet: ${tweetLink}`;
+            webhook.send(slackMessage, function(err, header, statusCode) {
+                if (err) {
+                    console.log('Error:', err);
+                } else {
+                    console.log('Received', statusCode, 'from Slack');
+                }
+            });
+
             // Invoke the TellFinder similar image API
             callTellfinder.callImageApi(imageUrls, client, user, tweetLink);
+
         } else {
             console.log(chalk.red('ERROR: no image'));
         }
