@@ -48,7 +48,7 @@ const startStream = (client, streamParams) => {
     });
 };
 
-client.get('friends/ids', (error, response) => {
+client.get('friends/ids', {stringify_ids: true},(error, response) => {
     if(error) {
         console.log(error);
     }
