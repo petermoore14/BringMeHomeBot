@@ -71,4 +71,5 @@ const server = http.createServer((request, response) => {
     response.end('Up since ' + upDate.toISOString());
 });
 
+console.log('Listening on port ' + process.env.server_listen_port);
 server.listen(process.env.server_listen_port);
