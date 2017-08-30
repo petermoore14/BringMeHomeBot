@@ -48,13 +48,12 @@ const startStream = (client, streamParams) => {
     });
 };
 
-client.get('friends/list', (error, friends) => {
+client.get('friends/ids', (error, response) => {
     if(error) {
         console.log(error);
     }
-    const following = friends.users.map(friend => friend.id_str).toString();
-    const friendlyFollowers = friends.users.map(friend => friend.name).toString();
-    console.log('Following:' + friendlyFollowers);
+    const following = response.ids.toString();
+    console.log('Following ' + response.ids.length + ' accounts: ' + following);
 
     const streamParameters = {
         follow: following
