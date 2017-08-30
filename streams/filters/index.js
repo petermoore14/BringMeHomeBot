@@ -31,7 +31,7 @@ module.exports.streamFilter  = (tweet, client) => {
             // Process the tweet on if we're following the account that tweeted it
             following.getFollowing(client)
                 .then((ids) => {
-                    if (ids.filter(id => id == tweet.user.id).length == 0) {
+                    if (ids.filter(id => id == tweet.user.id_str).length == 0) {
                         shouldProcess = false;
                     }
 
