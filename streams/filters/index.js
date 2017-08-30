@@ -16,52 +16,76 @@
 
 const chalk = require('chalk');
 const callTellfinder = require('../tell-api');
-
 const IncomingWebhook = require('@slack/client').IncomingWebhook;
+const following = require('../following');
 
 const url = process.env.slackSearchUrl;
 const webhook = new IncomingWebhook(url);
 
 module.exports.streamFilter  = (tweet, client) => {
 
-    // Ignore if this is a retweet
-    if (isRetweet(tweet)) {
-        return;
-    }
+    const shouldProcess = (tweet) => {
+        return new Promise((resolve) => {
+            let shouldProcess = !isRetweet(tweet);
 
-    const tweetText = tweet.text;
-    const tweetAuthor = tweet.user.screen_name;
+            // Process the tweet on if we're following the account that tweeted it
+            following.getFollowing(client)
+                .then((ids) => {
+                    if (ids.filter(id => id == tweet.user.id).length == 0) {
+                        shouldProcess = false;
+                    }
 
-    console.log('Received tweet by ' + tweetAuthor + ': ' + tweetText);
+                    if (shouldProcess) {
+                        resolve(tweet);
+                    }
+                    resolve(null);
+                })
+                .catch((err) => reject(err));
+        });
+    };
 
-    // If it is not a retweet and it is a missing persons related tweet
-    if(getMissing(tweet)){
+    // Do some preliminary checks to make sure this is a tweet that should be considered for processing
+    shouldProcess(tweet)
+        .then((tweet) => {
+            if (tweet === null) {
+                return;
+            }
 
-        // Get the images/media from the tweet
-        const imageUrls = getImages(tweet);
+            const tweetText = tweet.text;
+            const tweetAuthor = tweet.user.screen_name;
 
-        if(imageUrls.length > 0){
+            console.log('Received tweet by ' + tweetAuthor + ': ' + tweetText);
 
-            const user = process.env.limit_direct_messages === 'true' ? process.env.direct_message_recipient : tweet.user.id_str;
-            const tweetLink = `http://twitter.com/${tweet.user.id_str}/status/${tweet.id_str}`;
+            // Only run the queries if it's a 'missing persons' related tweet
+            if(getMissing(tweet)){
 
-            // Log the message to slack
-            const slackMessage = `Executing TellFinder search for tweet: ${tweetLink}`;
-            webhook.send(slackMessage, function(err, header, statusCode) {
-                if (err) {
-                    console.log('Error:', err);
+                // Get the images/media from the tweet
+                const imageUrls = getImages(tweet);
+
+                if(imageUrls.length > 0){
+
+                    const user = process.env.limit_direct_messages === 'true' ? process.env.direct_message_recipient : tweet.user.id_str;
+                    const tweetLink = `http://twitter.com/${tweet.user.id_str}/status/${tweet.id_str}`;
+
+                    // Log the message to slack
+                    const slackMessage = `Executing TellFinder search for tweet: ${tweetLink}`;
+                    webhook.send(slackMessage, function(err, header, statusCode) {
+                        if (err) {
+                            console.log('Error:', err);
+                        } else {
+                            console.log('Received', statusCode, 'from Slack');
+                        }
+                    });
+
+                    // Invoke the TellFinder similar image API
+                    callTellfinder.callImageApi(imageUrls, client, user, tweetLink);
+
                 } else {
-                    console.log('Received', statusCode, 'from Slack');
+                    console.log('No image found in tweet');
                 }
-            });
+            }
 
-            // Invoke the TellFinder similar image API
-            callTellfinder.callImageApi(imageUrls, client, user, tweetLink);
-
-        } else {
-            console.log('No image found in tweet');
-        }
-    }
+        });
 };
 
 /**
