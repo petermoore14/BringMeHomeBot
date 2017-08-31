@@ -14,10 +14,11 @@
  * limitations under the License.
  */
  
-var rp = require('request-promise');
-var Bitly = require('bitly');
+const rp = require('request-promise');
+const Bitly = require('bitly');
 const messages = require('../messages');
-var sha1 = require('sha1');
+const sha1 = require('sha1');
+const chalk = require('chalk');
 
 module.exports.callImageApi = (imageArray, tweetClient, user, tweetLink) => {
     const apiBaseUrl = process.env.apiBaseUrl;
@@ -27,7 +28,7 @@ module.exports.callImageApi = (imageArray, tweetClient, user, tweetLink) => {
     // For each image in the tweet, call the face API and check for matching images
     imageArray.forEach(img => {
 
-        console.log('Calling Similar Image API for image: ' + img);
+        console.log(chalk.red('Calling Similar Image API for image: ' + img));
 
         rp(options(apiBaseUrl + sim, img)).then(res => {
 

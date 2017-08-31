@@ -40,6 +40,7 @@ const conn = {
 };
 
 
+
 console.log('Application started');
 const client = new Twitter(conn);
 
@@ -69,7 +70,7 @@ client.get('application/rate_limit_status', (err,response) => {
 console.log('Created connection to Twitter api for ' + conn.consumer_key);
 
 let streamHandle = null;
-const startStream = (client, streamParams) => { 
+const startStream = (client, streamParams) => {
     client.stream('statuses/filter', streamParams, (stream) => {
         streamHandle = stream;
         stream.on('data', (tweet) => filter.streamFilter(tweet, client));
