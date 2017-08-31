@@ -14,10 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-const IncomingWebhook = require('@slack/client').IncomingWebhook;
-
-const url = process.env.slackHitUrl;
-const webhook = new IncomingWebhook(url);
+const slack = require('../slack');
 
 //params needs to be user_id || screen_name and text e.g {user_id:22123, text: 'hello'}
 module.exports.sendMessage = (client, params, tweetLink) => {
@@ -28,14 +25,10 @@ module.exports.sendMessage = (client, params, tweetLink) => {
             console.log('ERROR: Unable to send message after matching image');
         }
     });
+
+    // log the hit in slack
     const slackMessage = `${params.text}, Link to tweet: ${tweetLink}`;
-    webhook.send(slackMessage, function(err, header, statusCode) {
-        if (err) {
-          console.log('Error:', err);
-        } else {
-          console.log('Received', statusCode, 'from Slack');
-        }
-      });
+    slack.hit(slackMessage);
 };
 
 
