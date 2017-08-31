@@ -21,7 +21,7 @@ const http = require('http');
 const Twitter = require('twitter');
 const filter = require('./streams/filters');
 const error = require('./streams/error');
-
+const following = require('./streams/following');
 
 const conn = {
     consumer_key: process.env.consumer_key,
@@ -34,32 +34,78 @@ const conn = {
 console.log('Application started');
 const client = new Twitter(conn);
 
+// Get the rate usage for each endpoint.  Only show endpoints that have been used
 client.get('application/rate_limit_status', (err,response) => {
-    console.log(JSON.stringify(response));
-    if (err) console.log(JSON.stringify(err));
+    if (err) {
+        console.log(JSON.stringify(err));
+        return;
+    }
+    const used = [];
+    Object.keys(response.resources).forEach(key => {
+        Object.keys(response.resources[key]).forEach(endpointKey => {
+            const info = response.resources[key][endpointKey];
+            if (info.limit != info.remaining) {
+                used.push({
+                    limit: info.limit,
+                    remaining: info.remaining,
+                    reset: info.reset,
+                    endpoint: endpointKey
+                });
+            }
+        });
+    });
+    console.log(used);
 });
 
 console.log('Created connection to Twitter api for ' + conn.consumer_key);
 
+let streamHandle = null;
 const startStream = (client, streamParams) => { 
     client.stream('statuses/filter', streamParams, (stream) => {
+        streamHandle = stream;
         stream.on('data', (tweet) => filter.streamFilter(tweet, client));
         stream.on('error', error.streamError);
     });
 };
+const stopStream = () => {
+    streamHandle.destroy();
+    streamHandle = null;
+};
 
-client.get('friends/ids', {stringify_ids: true},(error, response) => {
-    if(error) {
-        console.log(error);
-    }
-    const following = response.ids.toString();
-    console.log('Following ' + response.ids.length + ' accounts: ' + following);
+// Get the list of followers and start the stream
+following.getFollowing(client)
+    .then((ids) => {
 
-    const streamParameters = {
-        follow: following
-    };
-    startStream(client, streamParameters);
-});
+        const followingStr = ids.toString();
+        console.log('Following ' + ids.length + ' accounts: ' + followingStr);
+        startStream(client, {
+            follow: followingStr
+        });
+    })
+    .catch((err) => {
+        err.streamError('Unable to start stream');
+    });
+
+// Setup a request to update the followers every 5 mins.  This is required by twitter API and should NOT be
+// modified or else we will get rate limited
+setInterval(() => {
+    following.getFollowing(client)
+        .then((oldIds) => {
+
+            following.updateFollowing(client)
+                .then((newIds) => {
+                    if (oldIds.length !== newIds.length) {
+                        console.log(`Following count changed from ${oldIds.length} to ${newIds.length}.  Restarting streams.`);
+                        stopStream();
+                        startStream(client, {
+                            follow: newIds.toString()
+                        });
+                    }
+                });
+
+        });
+},Math.floor(1000 * 60 * 5));
+
 
 // Load the http module to create an http server.
 
