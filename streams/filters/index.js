@@ -16,11 +16,9 @@
 
 const chalk = require('chalk');
 const callTellfinder = require('../tell-api');
-const IncomingWebhook = require('@slack/client').IncomingWebhook;
 const following = require('../following');
+const slack = require('../slack');
 
-const url = process.env.slackSearchUrl;
-const webhook = new IncomingWebhook(url);
 
 module.exports.streamFilter  = (tweet, client) => {
 
@@ -53,8 +51,11 @@ module.exports.streamFilter  = (tweet, client) => {
 
             const tweetText = tweet.text;
             const tweetAuthor = tweet.user.screen_name;
+            const tweetLink = `http://twitter.com/${tweet.user.id_str}/status/${tweet.id_str}`;
 
-            console.log('Received tweet by ' + tweetAuthor + ': ' + tweetText);
+            const logMsg = `${tweetLink} by ${tweetAuthor}: ${tweetText.replace(/\r?\n|\r/g,' ')}`;
+            console.log(logMsg);
+            slack.log(logMsg);
 
             // Only run the queries if it's a 'missing persons' related tweet
             if(getMissing(tweet)){
@@ -65,17 +66,10 @@ module.exports.streamFilter  = (tweet, client) => {
                 if(imageUrls.length > 0){
 
                     const user = process.env.limit_direct_messages === 'true' ? process.env.direct_message_recipient : tweet.user.id_str;
-                    const tweetLink = `http://twitter.com/${tweet.user.id_str}/status/${tweet.id_str}`;
 
-                    // Log the message to slack
-                    const slackMessage = `Executing TellFinder search for tweet: ${tweetLink}`;
-                    webhook.send(slackMessage, function(err, header, statusCode) {
-                        if (err) {
-                            console.log('Error:', err);
-                        } else {
-                            console.log('Received', statusCode, 'from Slack');
-                        }
-                    });
+                    // Log the message as a slack search
+                    slack.search(logMsg);
+                    console.log(chalk.red('SEARCHING: ' + logMsg));
 
                     // Invoke the TellFinder similar image API
                     callTellfinder.callImageApi(imageUrls, client, user, tweetLink);
@@ -94,7 +88,11 @@ module.exports.streamFilter  = (tweet, client) => {
  * @returns {boolean}   true if it should be processed by TellFinder, false otherwise
  */
 const getMissing = (tweet) => {
-  return tweet.text.includes('MISSING:');
+    const keywords = ['missing','mssng','last seen','l/s'];
+    const lowerTweet = tweet.text.toLowerCase();
+    return keywords
+        .filter((keyword) => lowerTweet.includes(keyword))
+        .length > 0;
 };
 
 /**
