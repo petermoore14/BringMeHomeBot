@@ -22,6 +22,7 @@ const Twitter = require('twitter');
 const filter = require('./streams/filters');
 const error = require('./streams/error');
 const following = require('./streams/following');
+const slack = require('./streams/slack');
 
 const conn = {
     consumer_key: process.env.consumer_key,
@@ -95,7 +96,11 @@ setInterval(() => {
             following.updateFollowing(client)
                 .then((newIds) => {
                     if (oldIds.length !== newIds.length) {
-                        console.log(`Following count changed from ${oldIds.length} to ${newIds.length}.  Restarting streams.`);
+
+                        const logMsg = `Following count changed from ${oldIds.length} to ${newIds.length}.  Restarting streams.`;
+                        console.log(logMsg);
+                        slack.log(logMsg);
+
                         stopStream();
                         startStream(client, {
                             follow: newIds.toString()
