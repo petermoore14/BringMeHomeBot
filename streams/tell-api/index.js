@@ -14,10 +14,10 @@
  * limitations under the License.
  */
  
-var rp = require('request-promise');
-var Bitly = require('bitly');
+const rp = require('request-promise');
+const Bitly = require('bitly');
 const messages = require('../messages');
-var sha1 = require('sha1');
+const sha1 = require('sha1');
 
 module.exports.callImageApi = (imageArray, tweetClient, user, tweetLink) => {
     const apiBaseUrl = process.env.apiBaseUrl;

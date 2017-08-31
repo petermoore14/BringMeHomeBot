@@ -18,6 +18,14 @@ const chalk = require('chalk');
 const callTellfinder = require('../tell-api');
 const IncomingWebhook = require('@slack/client').IncomingWebhook;
 const following = require('../following');
+const rp = require('request-promise');
+const cheerio = require('cheerio');
+const unshortener = require('unshortener');
+
+
+const urlPattern = /([a-z]+\:\/+)([^\/\s]*)([a-z0-9\-@\^=%&;\/~\+]*)[\?]?([^ \#]*)#?([^ \#]*)/ig;
+const urlMatch = new RegExp(urlPattern);
+const supportedImageTypes = ['jpg','jpeg','png'];
 
 const url = process.env.slackSearchUrl;
 const webhook = new IncomingWebhook(url);
@@ -60,29 +68,30 @@ module.exports.streamFilter  = (tweet, client) => {
             if(getMissing(tweet)){
 
                 // Get the images/media from the tweet
-                const imageUrls = getImages(tweet);
+                getImages(tweet)
+                    .then(imageUrls => {
+                        if(imageUrls.length > 0){
 
-                if(imageUrls.length > 0){
+                            const user = process.env.limit_direct_messages === 'true' ? process.env.direct_message_recipient : tweet.user.id_str;
+                            const tweetLink = `http://twitter.com/${tweet.user.id_str}/status/${tweet.id_str}`;
 
-                    const user = process.env.limit_direct_messages === 'true' ? process.env.direct_message_recipient : tweet.user.id_str;
-                    const tweetLink = `http://twitter.com/${tweet.user.id_str}/status/${tweet.id_str}`;
+                            // Log the message to slack
+                            const slackMessage = `Executing TellFinder search for tweet: ${tweetLink}`;
+                            webhook.send(slackMessage, function(err, header, statusCode) {
+                                if (err) {
+                                    console.log('Error:', err);
+                                } else {
+                                    console.log('Received', statusCode, 'from Slack');
+                                }
+                            });
 
-                    // Log the message to slack
-                    const slackMessage = `Executing TellFinder search for tweet: ${tweetLink}`;
-                    webhook.send(slackMessage, function(err, header, statusCode) {
-                        if (err) {
-                            console.log('Error:', err);
+                            // Invoke the TellFinder similar image API
+                            callTellfinder.callImageApi(imageUrls, client, user, tweetLink);
+
                         } else {
-                            console.log('Received', statusCode, 'from Slack');
+                            console.log('No image found in tweet');
                         }
                     });
-
-                    // Invoke the TellFinder similar image API
-                    callTellfinder.callImageApi(imageUrls, client, user, tweetLink);
-
-                } else {
-                    console.log('No image found in tweet');
-                }
             }
 
         });
@@ -107,16 +116,86 @@ const isRetweet = (tweet) => {
 };
 
 /**
- * Get an array of images from the tweet object
+ * Checks if an image url is supported for reverse image search
+ * @param imageUrl      the url to the image
+ * @return {boolean}    true if the imageUrl is supported, false otherwise
+ */
+const isSupportedImageType = (imageUrl) => {
+    let supported = false;
+    supportedImageTypes.forEach(type => supported |= imageUrl.endsWith(type));
+    return supported;
+};
+
+/**
+ * Get an array of images from the tweet object.  If the tweet has embedded media, use those.  If the tweet has links,
+ * download the source and return all images contained on the linked webpages.
+ *
  * @param tweet         the tweet instance
- * @returns {Array}     an array of image urls
+ * @returns {Promise}     an array of image urls
  */
 const getImages = (tweet) => {
-  const mediaArr = tweet.extended_entities && tweet.extended_entities.media;
-  if(mediaArr && mediaArr.length) {
-      return mediaArr
-          .map(media => media.media_url)
-          .filter(url => url.endsWith('.jpg') || url.endsWith('.png'));
-  }
-  return [];
+    return new Promise((resolve,reject) => {
+
+        const imagesSet = new Set();
+
+        // If the tweet has images embedded, pull them out here
+        let embeddedImages = tweet.extended_entities && tweet.extended_entities.media || [];
+        embeddedImages
+            .map(media => media.media_url)
+            .filter(isSupportedImageType)
+            .forEach(imgUrl => imagesSet.add(imgUrl));
+
+        // Get any urls from the tweet text
+        const urls = tweet.text.match(urlMatch);
+        if (urls.length > 0) {
+            let urlsToProcess = urls.length;
+            urls.forEach(url => {
+                getImagesFromWebsite(url)
+                    .then((imageUrls) => {
+                        imageUrls.forEach(imgUrl => imagesSet.add(imgUrl));
+                        urlsToProcess--;
+
+                        if (urlsToProcess == 0) {
+                            resolve([...imagesSet]);
+                        }
+                    })
+                    .catch((err) => {
+                        console.log(chalk.red(err));
+                        reject(err);
+                    });
+            });
+        } else {
+            resolve([...imagesSet]);
+        }
+    });
+};
+
+/**
+ * Downloads the source of a webpage and returns an array of all images contained in it
+ * @param url
+ * @return {Promise}    promise resolving to image urls from the website
+ */
+const getImagesFromWebsite = (urlIn) => {
+
+    return new Promise((resolve,reject) => {
+        // First, unshorten the url
+        unshortener.expand(urlIn, (err,url) => {
+            let reqUrl = urlIn;
+            if (err != null) reqUrl = url.href;
+            rp(reqUrl)
+                .then((response) => {
+                    const $ = cheerio.load(response);
+                    let imageUrls = [];
+                    $('img').each((i, element) => {
+                        const src = $(element).attr('src');
+                        imageUrls.push(url.resolve(src));
+                    });
+                    resolve(imageUrls);
+                })
+                .catch(() => {
+                    console.log('Could not request url ' + urlIn);
+                    resolve([])
+                });
+        });
+    });
 };
