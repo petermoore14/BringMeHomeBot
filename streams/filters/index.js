@@ -17,13 +17,13 @@
 const chalk = require('chalk');
 const callTellfinder = require('../tell-api');
 const following = require('../following');
-const rp = require('request-promise');
 const cheerio = require('cheerio');
-const unshortener = require('unshortener');
+const rp = require('request-promise');
+const read = require('node-readability');
+const URL = require('url');
+
 const slack = require('../slack');
 
-const urlPattern = /([a-z]+\:\/+)([^\/\s]*)([a-z0-9\-@\^=%&;\/~\+]*)[\?]?([^ \#]*)#?([^ \#]*)/ig;
-const urlMatch = new RegExp(urlPattern);
 const supportedImageTypes = ['jpg','jpeg','png'];
 
 
@@ -139,7 +139,7 @@ const getImages = (tweet) => {
             .forEach(imgUrl => imagesSet.add(imgUrl));
 
         // Get any urls from the tweet text
-        const urls = tweet.text.match(urlMatch);
+        const urls = tweet.entities.urls.map(twitterUrl => URL.parse(twitterUrl.expanded_url));
         if (urls.length > 0) {
             let urlsToProcess = urls.length;
             urls.forEach(url => {
@@ -165,30 +165,43 @@ const getImages = (tweet) => {
 
 /**
  * Downloads the source of a webpage and returns an array of all images contained in it
- * @param url
+ * @param url           a node URL object to read
  * @return {Promise}    promise resolving to image urls from the website
  */
-const getImagesFromWebsite = (urlIn) => {
+const getImagesFromWebsite = (url) => {
 
     return new Promise((resolve,reject) => {
-        // First, unshorten the url
-        unshortener.expand(urlIn, (err,url) => {
-            let reqUrl = urlIn;
-            if (err != null) reqUrl = url.href;
-            rp(reqUrl)
-                .then((response) => {
-                    const $ = cheerio.load(response);
-                    let imageUrls = [];
-                    $('img').each((i, element) => {
-                        const src = $(element).attr('src');
-                        imageUrls.push(url.resolve(src));
-                    });
+
+        // Fetch the content
+        rp(url.href)
+            .then((response) => {
+
+                // Pass the html through readability
+                read(response, (err,article) => {
+
+                    console.log('Extracting images from ' + url.href);
+                    let imageUrls = extractImages(article.content)
+                        .map(imgUrl => url.resolve(imgUrl));
                     resolve(imageUrls);
-                })
-                .catch(() => {
-                    console.log('Could not request url ' + urlIn);
-                    resolve([])
                 });
+            })
+            .catch(err => resolve([]));
         });
-    });
 };
+
+/**
+ * Extract all image urls from an HTML snippet
+ * @param html      an html snippit as a string
+ * @return {Array}  an array of image url contained in img tags in the html
+ */
+const extractImages = (html) => {
+    const $ = cheerio.load(html);
+    let imageUrls = [];
+    $('img').each((i, element) => {
+        const src = $(element).attr('src');
+        imageUrls.push(src);
+    });
+    return imageUrls;
+};
+
+module.exports.getImages = getImages;

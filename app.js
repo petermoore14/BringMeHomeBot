@@ -31,6 +31,7 @@ const filter = require('./streams/filters');
 const error = require('./streams/error');
 const following = require('./streams/following');
 const slack = require('./streams/slack');
+const tweetApi = require('./streams/tweet');
 
 const conn = {
     consumer_key: process.env.consumer_key,
@@ -43,6 +44,12 @@ const conn = {
 
 console.log('Application started');
 const client = new Twitter(conn);
+
+// Debug function to run the processing on a given tweet
+// tweetApi.getById('[some_tweet_id]',client)
+//     .then((tweet) => {
+//         filter.streamFilter(tweet,client)
+//     });
 
 // Get the rate usage for each endpoint.  Only show endpoints that have been used
 client.get('application/rate_limit_status', (err,response) => {
