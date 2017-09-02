@@ -199,14 +199,9 @@ const getImagesFromWebsite = (url) => {
                     if (!err) {
                         const realUrl = URL.parse(response.url);
 
-                        // Try to extract images from the main content
+                        // Extract images from the main content if it was extracted by readability
                         imageUrls = extractImages(article.content ? article.content : article.html)
                             .map(imgUrl => realUrl.resolve(imgUrl));
-
-                        // If we got no images from the main content, read from the original html
-                        if (imageUrls.length == 0) {
-                            imageUrls = extractImages(response.html);
-                        }
 
                         if (imageUrls.length > 0) {
                             console.log(`Extracted ${imageUrls.length} images from ${url.href} : ${imageUrls}`);
