@@ -19,9 +19,10 @@ const callTellfinder = require('../tell-api');
 const following = require('../following');
 const cheerio = require('cheerio');
 const rp = require('request-promise');
+const splash = require('../splash');
 const read = require('node-readability');
 const URL = require('url');
-
+const unshorten = require('../unshorten');
 const slack = require('../slack');
 
 const supportedImageTypes = ['jpg','jpeg','png'];
@@ -56,7 +57,7 @@ module.exports.streamFilter  = (tweet, client) => {
                 return;
             }
 
-            const tweetText = tweet.text;
+            const tweetText = tweet.full_text ? tweet.full_text : tweet.text;
             const tweetAuthor = tweet.user.screen_name;
             const tweetLink = `http://twitter.com/${tweet.user.id_str}/status/${tweet.id_str}`;
 
@@ -93,7 +94,8 @@ module.exports.streamFilter  = (tweet, client) => {
  */
 const getMissing = (tweet) => {
     const keywords = ['missing','mssng','last seen','l/s'];
-    const lowerTweet = tweet.text.toLowerCase();
+    const text = tweet.full_text ? tweet.full_text : tweet.text;
+    const lowerTweet = text.toLowerCase();
     return keywords
         .filter((keyword) => lowerTweet.includes(keyword))
         .length > 0;
@@ -139,26 +141,39 @@ const getImages = (tweet) => {
             .forEach(imgUrl => imagesSet.add(imgUrl));
 
         // Get any urls from the tweet text
-        const urls = tweet.entities.urls.map(twitterUrl => URL.parse(twitterUrl.expanded_url));
-        if (urls.length > 0) {
-            let urlsToProcess = urls.length;
-            urls.forEach(url => {
-                getImagesFromWebsite(url)
-                    .then((imageUrls) => {
-                        imageUrls.forEach(imgUrl => imagesSet.add(imgUrl));
-                        urlsToProcess--;
+        const urls = tweet.entities.urls
+            .map(twitterUrl => URL.parse(twitterUrl.expanded_url));
 
-                        if (urlsToProcess == 0) {
-                            resolve([...imagesSet]);
-                        }
-                    })
-                    .catch((err) => {
-                        console.log(chalk.red(err));
-                        reject(err);
-                    });
-            });
-        } else {
+        // Run them through a recursive un-shortener as sometimes people like to shorten links multiple times :\
+        if (urls.length == 0) {
             resolve([...imagesSet]);
+        } else {
+            unshorten.expand(urls)
+                .then((urls) => {
+                    if (urls.length > 0) {
+                        let urlsToProcess = urls.length;
+                        urls.forEach(url => {
+                            getImagesFromWebsite(url)
+                                .then((imageUrls) => {
+                                    if (imageUrls.length == 0) {
+                                        console.log("No images found on " + url.href);
+                                    }
+                                    imageUrls.forEach(imgUrl => imagesSet.add(imgUrl));
+                                    urlsToProcess--;
+
+                                    if (urlsToProcess == 0) {
+                                        resolve([...imagesSet]);
+                                    }
+                                })
+                                .catch((err) => {
+                                    console.log(chalk.red(err));
+                                    reject(err);
+                                });
+                        });
+                    } else {
+                        resolve([...imagesSet]);
+                    }
+                });
         }
     });
 };
@@ -173,15 +188,30 @@ const getImagesFromWebsite = (url) => {
     return new Promise((resolve,reject) => {
 
         // Fetch the content
-        rp(url.href)
+        splash.download(url.href)
             .then((response) => {
 
-                // Pass the html through readability
-                read(response, (err,article) => {
+                let imageUrls = [];
 
-                    console.log('Extracting images from ' + url.href);
-                    let imageUrls = extractImages(article.content)
-                        .map(imgUrl => url.resolve(imgUrl));
+                // Pass the html through readability
+                read(response.html, (err,article) => {
+
+                    if (!err) {
+                        const realUrl = URL.parse(response.url);
+
+                        // Try to extract images from the main content
+                        let imageUrls = extractImages(article.content ? article.content : article.html)
+                            .map(imgUrl => realUrl.resolve(imgUrl));
+
+                        // If we got no images from the main content, read from the original html
+                        if (imageUrls.length == 0) {
+                            imageUrls = extractImages(response.html);
+                        }
+
+                        if (imageUrls.length > 0) {
+                            console.log(`Extracted ${imageUrls.length} images from ${url.href} : ${imageUrls}`);
+                        }
+                    }
                     resolve(imageUrls);
                 });
             })
@@ -203,5 +233,3 @@ const extractImages = (html) => {
     });
     return imageUrls;
 };
-
-module.exports.getImages = getImages;

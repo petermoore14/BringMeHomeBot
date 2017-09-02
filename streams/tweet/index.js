@@ -1,9 +1,12 @@
 (function() {
    getById = (id,client) => {
        return new Promise((resolve,reject) => {
-           client.get('statuses/show', {id})
-               .then(response => resolve(response))
-               .catch(err => reject(err));
+           client.get('statuses/show', {
+               id:id,
+               tweet_mode: 'extended'
+           })
+            .then(response => resolve(response))
+            .catch(err => reject(err));
        });
    };
 
