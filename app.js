@@ -24,6 +24,9 @@ console.log = function(data)
 
 // Load the environment
 require('node-env-file')('.env', {raise: false});
+
+const express = require('express')
+const app = express();
  
 const http = require('http');
 const Twitter = require('twitter');
@@ -31,6 +34,8 @@ const filter = require('./streams/filters');
 const error = require('./streams/error');
 const following = require('./streams/following');
 const slack = require('./streams/slack');
+const keys = require('./streams/keys');
+const tweetApi = require('./streams/tweet');
 
 const conn = {
     consumer_key: process.env.consumer_key,
@@ -38,8 +43,6 @@ const conn = {
     access_token_key: process.env.access_token_key,
     access_token_secret: process.env.access_token_secret
 };
-
-
 
 console.log('Application started');
 const client = new Twitter(conn);
@@ -55,10 +58,14 @@ client.get('application/rate_limit_status', (err,response) => {
         Object.keys(response.resources[key]).forEach(endpointKey => {
             const info = response.resources[key][endpointKey];
             if (info.limit != info.remaining) {
+
+                const reset = new Date(0);
+                reset.setUTCSeconds(info.reset);
+
                 used.push({
                     limit: info.limit,
                     remaining: info.remaining,
-                    reset: info.reset,
+                    reset: reset.toUTCString(),
                     endpoint: endpointKey
                 });
             }
@@ -125,10 +132,37 @@ setInterval(() => {
 
 // // Configure our HTTP server to respond with Hello World to all requests.
 const upDate = new Date();
-const server = http.createServer((request, response) => {
-    response.writeHead(200, {'Content-Type': 'text/plain'});
-    response.end('Up since ' + upDate.toISOString());
+
+// Get uptime status
+app.get('/', (req, res) => {
+    res.writeHead(200, {'Content-Type': 'text/plain'});
+    res.end('Up since ' + upDate.toISOString());
 });
 
-console.log('Listening on port ' + process.env.server_listen_port);
-server.listen(process.env.server_listen_port);
+app.get('/:tweetid', (req,res) => {
+
+    const key = req.header('bringmehome-api-key');
+    if (keys.isValidKey(key)) {
+
+        const tweetId = req.param('tweetid');
+
+        // Run the processing on the tweet id provided
+        tweetApi.getById(tweetId,client)
+            .then( tweet => {
+                filter.streamFilter(tweet,client);
+                res.writeHead(200);
+                res.end();
+            })
+            .catch( err => {
+                res.writeHead(500);
+                res.end(err);
+            });
+    } else {
+        res.writeHead(401);
+        res.end('Access denied');
+    }
+});
+
+app.listen(process.env.server_listen_port, () => {
+    console.log('Listening on port ' + process.env.server_listen_port);
+});

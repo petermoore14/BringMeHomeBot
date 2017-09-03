@@ -1,9 +1,13 @@
 (function() {
     const IncomingWebhook = require('@slack/client').IncomingWebhook;
 
-    const searchWebhook = new IncomingWebhook(process.env.slackSearchUrl);
-    const logWebhook = new IncomingWebhook(process.env.slackLogUrl);
-    const hitWebhook = new IncomingWebhook(process.env.slackHitUrl);
+    const _identity = {
+        send : () => { }
+    };
+
+    const searchWebhook = process.env.slackSearchUrl ? new IncomingWebhook(process.env.slackSearchUrl) : _identity;
+    const logWebhook = process.env.slackLogUrl ? new IncomingWebhook(process.env.slackLogUrl) : _identity;
+    const hitWebhook = process.env.slackHitUrl ? new IncomingWebhook(process.env.slackHitUrl) : _identity;
 
     let _handleResponse = (err) => {
         if (err) console.log('Error:', err);
