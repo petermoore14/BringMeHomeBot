@@ -95,7 +95,7 @@ const getMissing = (tweet) => {
     const keywords = ['missing','mssng','last seen','l/s'];
     const lowerTweet = tweet.text.toLowerCase();
     return keywords
-        .filter((keyword) => lowerTweet.includes(keyword))
+        .filter((keyword) => lowerTweet.indexOf(keyword) != -1)
         .length > 0;
 };
 
