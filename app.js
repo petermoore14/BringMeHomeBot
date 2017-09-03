@@ -77,16 +77,35 @@ client.get('application/rate_limit_status', (err,response) => {
 console.log('Created connection to Twitter api for ' + conn.consumer_key);
 
 let streamHandle = null;
+let restartTimeoutId = null;
 const startStream = (client, streamParams) => {
     client.stream('statuses/filter', streamParams, (stream) => {
         streamHandle = stream;
         stream.on('data', (tweet) => filter.streamFilter(tweet, client));
-        stream.on('error', error.streamError);
+        stream.on('error', (err) => {
+            error.streamError(err);
+
+            // If there was an error, restart the stream in 3 minutes
+            if (restartTimeoutId == null) {
+                const restartHoldoff = 3;
+                console.log(`Attempting to restart stream in ${restartHoldoff} minutes`);
+                restartTimeoutId = setTimeout(() => {
+
+                    restartTimeoutId = null;
+                    console.log('Restarting streams');
+                    stopStream();
+                    startStream(client, streamParams);
+
+                }, restartHoldoff * 60 * 1000);
+            }
+        });
     });
 };
 const stopStream = () => {
-    streamHandle.destroy();
-    streamHandle = null;
+    if (streamHandle != null) {
+        streamHandle.destroy();
+        streamHandle = null;
+    }
 };
 
 // Get the list of followers and start the stream
@@ -99,12 +118,10 @@ following.getFollowing(client)
             follow: followingStr
         });
     })
-    .catch((err) => {
-        err.streamError('Unable to start stream');
-    });
+    .catch(error.streamError);
 
 // Setup a request to update the followers every 5 mins.  This is required by twitter API and should NOT be
-// modified or else we will get rate limited
+// modified or else we will get rate limited.  If the stream is dead, restart it
 setInterval(() => {
     following.getFollowing(client)
         .then((oldIds) => {
