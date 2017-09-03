@@ -97,7 +97,7 @@ const getMissing = (tweet) => {
     const text = tweet.full_text ? tweet.full_text : tweet.text;
     const lowerTweet = text.toLowerCase();
     return keywords
-        .filter((keyword) => lowerTweet.includes(keyword))
+        .filter((keyword) => lowerTweet.indexOf(keyword) != -1)
         .length > 0;
 };
 
