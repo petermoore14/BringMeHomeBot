@@ -19,6 +19,7 @@ const Bitly = require('bitly');
 const messages = require('../messages');
 const sha1 = require('sha1');
 const chalk = require('chalk');
+const slack = require('../slack');
 
 module.exports.callImageApi = (imageArray, tweetClient, user, tweetLink) => {
     const apiBaseUrl = process.env.apiBaseUrl;
@@ -29,6 +30,7 @@ module.exports.callImageApi = (imageArray, tweetClient, user, tweetLink) => {
     imageArray.forEach(img => {
 
         console.log(chalk.red('Calling Similar Image API for image: ' + img));
+        slack.image(img);
 
         rp(options(apiBaseUrl + sim, img)).then(res => {
 
