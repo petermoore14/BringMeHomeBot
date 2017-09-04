@@ -57,9 +57,9 @@ module.exports.streamFilter  = (tweet, client) => {
                 return;
             }
 
-            const tweetText = tweet.full_text ? tweet.full_text : tweet.text;
+            const tweetText = getText(tweet);
             const tweetAuthor = tweet.user.screen_name;
-            const tweetLink = `http://twitter.com/${tweet.user.id_str}/status/${tweet.id_str}`;
+            const tweetLink = `https://twitter.com/${tweet.user.id_str}/status/${tweet.id_str}`;
 
             const logMsg = `${tweetLink} by ${tweetAuthor}: ${tweetText.replace(/\r?\n|\r/g,' ')}`;
             console.log(logMsg);
@@ -94,11 +94,28 @@ module.exports.streamFilter  = (tweet, client) => {
  */
 const getMissing = (tweet) => {
     const keywords = ['missing','mssng','last seen','l/s'];
-    const text = tweet.full_text ? tweet.full_text : tweet.text;
+    const text = getText(tweet);
     const lowerTweet = text.toLowerCase();
     return keywords
         .filter((keyword) => lowerTweet.indexOf(keyword) != -1)
         .length > 0;
+};
+
+/**
+ * Gets the text from a tweet object
+ * @param tweet     the tweet instance
+ * @return {string} the string of the full text, null if tweet is null
+ */
+const getText = (tweet) => {
+    let text = null;
+    if (tweet) {
+        if (tweet.extended_tweet) {
+            text = tweet.extended_tweet.full_text;
+        } else {
+            text = tweet.full_text ? tweet.full_text : tweet.text;
+        }
+    }
+    return text;
 };
 
 /**
