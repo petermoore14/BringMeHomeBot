@@ -86,7 +86,7 @@ const startStream = (client, streamParams) => {
             error.streamError(err);
 
             // If there was an error, restart the stream in 3 minutes
-            if (restartTimeoutId == null) {
+            if (restartTimeoutId === null) {
                 const restartHoldoff = 3;
                 console.log(`Attempting to restart stream in ${restartHoldoff} minutes`);
                 restartTimeoutId = setTimeout(() => {
@@ -102,7 +102,7 @@ const startStream = (client, streamParams) => {
     });
 };
 const stopStream = () => {
-    if (streamHandle != null) {
+    if (streamHandle !== null) {
         streamHandle.destroy();
         streamHandle = null;
     }
@@ -122,30 +122,25 @@ following.getFollowing(client)
 
 // Setup a request to update the followers every 5 mins.  This is required by twitter API and should NOT be
 // modified or else we will get rate limited.  If the stream is dead, restart it
-setInterval(() => {
-    following.getFollowing(client)
-        .then((oldIds) => {
+setInterval(async () => {
+    let oldIds = await following.getFollowing(client);
+    let newIds = await following.updateFollowing(client);
 
-            following.updateFollowing(client)
-                .then((newIds) => {
-                    if (oldIds.length !== newIds.length) {
+    // If the following count has change, restart the streams
+    if (oldIds.length !== newIds.length) {
 
-                        const logMsg = `Following count changed from ${oldIds.length} to ${newIds.length}.  Restarting streams.`;
-                        console.log(logMsg);
-                        slack.log(logMsg);
+        const logMsg = `Following count changed from ${oldIds.length} to ${newIds.length}.  Restarting streams.`;
+        console.log(logMsg);
+        slack.log(logMsg);
 
-                        stopStream();
-                        startStream(client, {
-                            follow: newIds.toString()
-                        });
-                    }
-                });
-
+        stopStream();
+        startStream(client, {
+            follow: newIds.toString()
         });
+    }
 },Math.floor(1000 * 60 * 5));
 
 
-// Load the http module to create an http server.
 
 // // Configure our HTTP server to respond with Hello World to all requests.
 const upDate = new Date();
@@ -156,6 +151,7 @@ app.get('/', (req, res) => {
     res.end('Up since ' + upDate.toISOString());
 });
 
+// Process a tweet by tweet ID
 app.get('/:tweetid', (req,res) => {
 
     const key = req.header('bringmehome-api-key');

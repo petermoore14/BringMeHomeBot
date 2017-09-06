@@ -18,9 +18,8 @@ const chalk = require('chalk');
 const callTellfinder = require('../tell-api');
 const following = require('../following');
 const cheerio = require('cheerio');
-const rp = require('request-promise');
 const splash = require('../splash');
-const read = require('node-readability');
+const readability = require('../readability');
 const URL = require('url');
 const unshorten = require('../unshorten');
 const slack = require('../slack');
@@ -28,63 +27,41 @@ const slack = require('../slack');
 const supportedImageTypes = ['jpg','jpeg','png'];
 
 
-module.exports.streamFilter  = (tweet, client) => {
-
-    const shouldProcess = (tweet) => {
-        return new Promise((resolve) => {
-            let shouldProcess = !isRetweet(tweet);
-
-            // Process the tweet on if we're following the account that tweeted it
-            following.getFollowing(client)
-                .then((ids) => {
-                    if (ids.filter(id => id == tweet.user.id_str).length == 0) {
-                        shouldProcess = false;
-                    }
-
-                    if (shouldProcess) {
-                        resolve(tweet);
-                    }
-                    resolve(null);
-                })
-                .catch((err) => reject(err));
-        });
-    };
+module.exports.streamFilter  = async (tweet, client) => {
 
     // Do some preliminary checks to make sure this is a tweet that should be considered for processing
-    shouldProcess(tweet)
-        .then((tweet) => {
-            if (tweet === null) {
-                return;
-            }
+    tweet = await isFromFollower(tweet,client);
 
-            const tweetText = getText(tweet);
-            const tweetAuthor = tweet.user.screen_name;
-            const tweetLink = `https://twitter.com/${tweet.user.id_str}/status/${tweet.id_str}`;
+    if (tweet === null) {
+        return;
+    }
 
-            const logMsg = `${tweetLink} by ${tweetAuthor}: ${tweetText.replace(/\r?\n|\r/g,' ')}`;
-            console.log(logMsg);
-            slack.log(logMsg);
+    const tweetText = getText(tweet);
+    const tweetAuthor = tweet.user.screen_name;
+    const tweetLink = `https://twitter.com/${tweet.user.id_str}/status/${tweet.id_str}`;
 
-            // Only run the queries if it's a 'missing persons' related tweet
-            if(getMissing(tweet)){
+    const logMsg = `${tweetLink} by ${tweetAuthor}: ${tweetText.replace(/\r?\n|\r/g,' ')}`;
+    console.log(logMsg);
+    slack.log(logMsg);
 
-                // Get the images/media from the tweet
-                getImages(tweet)
-                    .then(imageUrls => {
-                        if (imageUrls.length > 0) {
+    // Only run the queries if it's a 'missing persons' related tweet
+    if(getMissing(tweet)){
 
-                            const user = process.env.limit_direct_messages === 'true' ? process.env.direct_message_recipient : tweet.user.id_str;
+        // Get the images/media from the tweet
+        const imageUrls = await getImages(tweet);
 
-                            // Log the message as a slack search
-                            slack.search(logMsg);
-                            console.log(chalk.red('SEARCHING: ' + logMsg));
+        if (imageUrls.length > 0) {
 
-                            // Invoke the TellFinder similar image API
-                            callTellfinder.callImageApi(imageUrls, client, user, tweetLink);
-                        }
-                    });
-            }
-        });
+            const user = process.env.limit_direct_messages === 'true' ? process.env.direct_message_recipient : tweet.user.id_str;
+
+            // Log the message as a slack search
+            slack.search(logMsg);
+            console.log(chalk.red('SEARCHING: ' + logMsg));
+
+            // Invoke the TellFinder similar image API
+            callTellfinder.callImageApi(imageUrls, client, user, tweetLink);
+        }
+    }
 };
 
 /**
@@ -97,7 +74,7 @@ const getMissing = (tweet) => {
     const text = getText(tweet);
     const lowerTweet = text.toLowerCase();
     return keywords
-        .filter((keyword) => lowerTweet.indexOf(keyword) != -1)
+        .filter((keyword) => lowerTweet.indexOf(keyword) !== -1)
         .length > 0;
 };
 
@@ -128,6 +105,32 @@ const isRetweet = (tweet) => {
 };
 
 /**
+ * Checks if a tweet is from someone we are following
+ * @param tweet         the tweet instance
+ * @param client        the twitter client instance
+ * @return {Promise}    promise resolving to the tweet if we follow the user, null otherwise
+ */
+const isFromFollower = (tweet,client) => {
+    return new Promise((resolve) => {
+        let shouldProcess = !isRetweet(tweet);
+
+        // Process the tweet on if we're following the account that tweeted it
+        following.getFollowing(client)
+            .then((ids) => {
+                if (ids.filter(id => id === tweet.user.id_str).length === 0) {
+                    shouldProcess = false;
+                }
+
+                if (shouldProcess) {
+                    resolve(tweet);
+                }
+                resolve(null);
+            })
+            .catch((err) => reject(err));
+    });
+};
+
+/**
  * Checks if an image url is supported for reverse image search
  * @param imageUrl      the url to the image
  * @return {boolean}    true if the imageUrl is supported, false otherwise
@@ -146,7 +149,7 @@ const isSupportedImageType = (imageUrl) => {
  * @returns {Promise}     an array of image urls
  */
 const getImages = (tweet) => {
-    return new Promise((resolve,reject) => {
+    return new Promise(async (resolve,reject) => {
 
         const imagesSet = new Set();
 
@@ -158,40 +161,21 @@ const getImages = (tweet) => {
             .forEach(imgUrl => imagesSet.add(imgUrl));
 
         // Get any urls from the tweet text
-        const urls = tweet.entities.urls
+        const rawUrls = tweet.entities.urls
             .map(twitterUrl => URL.parse(twitterUrl.expanded_url));
 
-        // Run them through a recursive un-shortener as sometimes people like to shorten links multiple times :\
-        if (urls.length == 0) {
-            resolve([...imagesSet]);
-        } else {
-            unshorten.expand(urls)
-                .then((urls) => {
-                    if (urls.length > 0) {
-                        let urlsToProcess = urls.length;
-                        urls.forEach(url => {
-                            getImagesFromWebsite(url)
-                                .then((imageUrls) => {
-                                    if (imageUrls.length == 0) {
-                                        console.log("No images found on " + url.href);
-                                    }
-                                    imageUrls.forEach(imgUrl => imagesSet.add(imgUrl));
-                                    urlsToProcess--;
+        if (rawUrls.length > 0) {
 
-                                    if (urlsToProcess == 0) {
-                                        resolve([...imagesSet]);
-                                    }
-                                })
-                                .catch((err) => {
-                                    console.log(chalk.red(err));
-                                    reject(err);
-                                });
-                        });
-                    } else {
-                        resolve([...imagesSet]);
-                    }
-                });
+            // Run them through a un-shortener as sometimes people like to shorten links multiple times
+            let urls = await unshorten.expand(rawUrls);
+
+            // Get the images from each url and add them to the set
+            for (let i = 0; i < urls.length; i++) {
+                const imgUrls = await getImagesFromWebsite(urls[i]);
+                imgUrls.forEach(imgUrl => imagesSet.add(imgUrl));
+            }
         }
+        resolve([...imagesSet]);
     });
 };
 
@@ -200,35 +184,32 @@ const getImages = (tweet) => {
  * @param url           a node URL object to read
  * @return {Promise}    promise resolving to image urls from the website
  */
-const getImagesFromWebsite = (url) => {
+const getImagesFromWebsite = async (url) => {
 
-    return new Promise((resolve,reject) => {
+    return new Promise(async (resolve,reject) => {
 
-        // Fetch the content
-        splash.download(url.href)
-            .then((response) => {
+        try {
 
-                let imageUrls = [];
+            // Fetch the content from the web
+            const response = await splash.download(url.href);
 
-                // Pass the html through readability
-                read(response.html, (err,article) => {
+            // Run through readability to get main article content
+            const article = await readability.read(response.html);
+            const realUrl = URL.parse(response.url);
 
-                    if (!err) {
-                        const realUrl = URL.parse(response.url);
+            // Extract images from the main content if it was extracted by readability
+            const imageUrls = extractImages(article.content ? article.content : article.html)
+                .map(imgUrl => realUrl.resolve(imgUrl));
 
-                        // Extract images from the main content if it was extracted by readability
-                        imageUrls = extractImages(article.content ? article.content : article.html)
-                            .map(imgUrl => realUrl.resolve(imgUrl));
+            if (imageUrls.length > 0) {
+                console.log(`Extracted ${imageUrls.length} images from ${url.href} : ${imageUrls}`);
+            }
+            resolve(imageUrls);
 
-                        if (imageUrls.length > 0) {
-                            console.log(`Extracted ${imageUrls.length} images from ${url.href} : ${imageUrls}`);
-                        }
-                    }
-                    resolve(imageUrls);
-                });
-            })
-            .catch(err => resolve([]));
-        });
+        } catch (err) {
+            resolve([]);
+        }
+    });
 };
 
 /**

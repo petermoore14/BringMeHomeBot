@@ -1,61 +1,48 @@
 (function() {
-    const unhsortener = require('unshortener');
-    const URL = require('url');
-
-    const bitly = {
-        username : process.env.bitlyuser,
-        apikey: process.env.bitly
-    };
+    const unshortener = require('unshortener');
 
     /**
-     * Helper to recursively expand until we get the real URL
-     * @param url       url input
-     * @param callback  called when expanded url equals input url
+     * Wrap unshortener in a promise
+     * @param url           url input
+     * @return {Promise}    promise resolving to the unshortened url or the original url if it was not shortened
      */
-    const unshortenAll = (url,callback) => {
-        unhsortener.expand(url, (err, expandedUrl) => {
-            if (err) {
-                if (expandedUrl) {
-                    resolve(expandedUrl)
+    const unshorten = (url) => {
+        return new Promise((resolve,reject) => {
+            unshortener.expand(url,(err, expandedUrl) => {
+                if (err) {
+                    if (expandedUrl) {
+                        resolve(expandedUrl)
+                    }
+                    else {
+                        resolve(url);
+                    }
+                } else {
+                    resolve(expandedUrl);
                 }
-                else {
-                    resolve(url);
-                }
-            }
-
-            if (expandedUrl.href == url.href) {
-                callback(expandedUrl);
-            } else {
-                unshortenAll(expandedUrl,callback);
-            }
-        })
+            });
+        });
     };
 
     /**
-     * Recursively expand urls using unshortener. Wrap it as a promise
+     * Expand a single url or an array of them
      * @param url           the url object to unshorten
      * @return {Promise}
      */
     module.exports.expand = (url) => {
-        return new Promise((resolve) => {
+        return new Promise(async (resolve) => {
 
             // If args is an array, unshorten all of them
             if (url instanceof Array) {
-                let remaining = url.length;
-                const unshortened = [];
-                for (let i = 0; i < url.length; i++) {
-                    unshortenAll(url[i], (unshortenedUrl) => {
-                        unshortened.push(unshortenedUrl);
-                        remaining--;
-                        if (remaining == 0) {
-                            resolve(unshortened);
-                        }
-                    });
-                }
-            } else {
-                unshortenAll(url,(unshortenedUrl) => {
-                    resolve(unshortenedUrl);
+                const unshortenedPromises = url.map(async u => {
+                    return await unshorten(u);
                 });
+
+                const unshortenedUrls = await Promise.all(unshortenedPromises);
+
+                resolve(unshortenedUrls);
+            } else {
+                const unshortened = await unshorten(url);
+                resolve(unshortened);
             }
         });
     }

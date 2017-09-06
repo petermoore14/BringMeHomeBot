@@ -13,17 +13,18 @@
     /**
      * Download the HTML of a website given a url
      * @param url           the url to download
-     * @return {string}     the HTML of the url as a string
+     * @return {Promise}    promise resolving to the downloaded HTML
      */
     let download = (url) => {
-        const options = {
-            method: 'GET',
-            uri: `${splashBaseUrl}?url=${encodeURIComponent(url)}&resource_timeout=${splashTimeout}&wait=${splashWait}&html=1`,
-            headers: {'Authorization': splashBasic}
-        };
-        return rp(options).then(responseStr => {
-            const response = JSON.parse(responseStr);
-            return response;
+        return new Promise((resolve) => {
+            const options = {
+                method: 'GET',
+                uri: `${splashBaseUrl}?url=${encodeURIComponent(url)}&resource_timeout=${splashTimeout}&wait=${splashWait}&html=1`,
+                headers: {'Authorization': splashBasic}
+            };
+            return rp(options).then(r => {
+                resolve(JSON.parse(r));
+            });
         });
     };
 
