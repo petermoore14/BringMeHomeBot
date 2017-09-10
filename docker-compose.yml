@@ -12,6 +12,18 @@ services:
       resources:
         limits:
           memory: 1G
-
+          
+  logoclassifier:
+    image: docker.uncharted.software/logoclassifier:latest
+    ports:
+      - ${logo_listen_port}:${logo_listen_port}
+    env_file: .env
+    networks:
+      bringmehome:
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          memory: 1G
 networks:
   bringmehome:
