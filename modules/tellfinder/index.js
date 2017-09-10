@@ -27,38 +27,41 @@ module.exports.callImageApi = (imageArray, tweetClient, user, tweetLink) => {
     const bitly = new Bitly(process.env.bitly);
 
     // For each image in the tweet, call the face API and check for matching images
-    imageArray.forEach(img => {
+    imageArray.forEach(async img => {
 
         console.log(chalk.red('Calling Similar Image API for image: ' + img));
         slack.image(img);
 
-        rp(options(apiBaseUrl + sim, img)).then(res => {
+        const res = await rp(options(apiBaseUrl + sim, img));
 
-            // If there are image hits, notify the corresponding account
-            if(res.similarHashes.length > 0){
-                console.log('HIT FOUND: ' + img);
+        // If there are image hits, notify the corresponding account
+        if(res.similarHashes.length > 0){
 
-                const hash = computeHash(img);
-                const encodedUri = encodeURIComponent(img);
-                const deploymentBaseUrl = process.env.deploymentBaseUrl;
-                const bringMeHomeUrl =  deploymentBaseUrl + '/bringmehome?url=' + encodedUri + '&hash=' + hash.toUpperCase();
+            console.log('HIT FOUND: ' + img);
 
-                console.log('URL: ' + bringMeHomeUrl);
+            const hash = computeHash(img);
+            const encodedUri = encodeURIComponent(img);
+            const deploymentBaseUrl = process.env.deploymentBaseUrl;
+            const bringMeHomeUrl =  deploymentBaseUrl + '/bringmehome?url=' + encodedUri + '&hash=' + hash.toUpperCase();
 
-                // Shorten the URL link to the bringmehome endpoint in tellfinder and notify the account
-                bitly.shorten(bringMeHomeUrl)
-                .then((response) => {
-                    var short_url = response.data.url;
-                    messages.sendMessage(tweetClient, {user_id: user, text: 'More information about Missing individual at: ' + short_url }, tweetLink);
-                }, (error) => {
-                    throw error;
-                });
-            } else {
-                console.log(`no similar images to ${img}`);
+            console.log('URL: ' + bringMeHomeUrl);
+
+            // Shorten the URL link to the bringmehome endpoint in tellfinder and notify the account
+            try {
+                const bitlyResponse = await bitly.shorten(bringMeHomeUrl);
+                const short_url = bitlyResponse.data.url;
+                messages.sendMessage(tweetClient, {
+                    user_id: user,
+                    text: 'More information about Missing individual at: ' + short_url
+                }, tweetLink);
             }
-         }).catch(err => {
-            throw err
-         });
+            catch (err) {
+                throw err;
+            }
+
+        } else {
+            console.log(`no similar images to ${img}`);
+        }
     });
 };
 
