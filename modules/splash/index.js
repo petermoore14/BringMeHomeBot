@@ -16,15 +16,19 @@
      * @return {Promise}    promise resolving to the downloaded HTML
      */
     let download = (url) => {
-        return new Promise((resolve) => {
+        return new Promise( async (resolve,reject) => {
             const options = {
                 method: 'GET',
                 uri: `${splashBaseUrl}?url=${encodeURIComponent(url)}&resource_timeout=${splashTimeout}&wait=${splashWait}&html=1`,
                 headers: {'Authorization': splashBasic}
             };
-            return rp(options).then(r => {
+            try {
+                const r = await rp(options);
                 resolve(JSON.parse(r));
-            });
+            } catch (err) {
+                reject(err);
+            }
+
         });
     };
 

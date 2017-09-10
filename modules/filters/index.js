@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
+const rp = require('request-promise');
 const chalk = require('chalk');
-const callTellfinder = require('../tell-api');
+const callTellfinder = require('../tellfinder');
 const following = require('../following');
 const cheerio = require('cheerio');
 const splash = require('../splash');
@@ -27,10 +28,10 @@ const slack = require('../slack');
 const supportedImageTypes = ['jpg','jpeg','png'];
 
 
-module.exports.streamFilter  = async (tweet, client) => {
+module.exports.streamFilter  = async (tweetIn, client) => {
 
     // Do some preliminary checks to make sure this is a tweet that should be considered for processing
-    tweet = await isFromFollower(tweet,client);
+    const tweet = await isFromFollower(tweetIn,client);
 
     if (tweet === null) {
         return;
@@ -111,22 +112,24 @@ const isRetweet = (tweet) => {
  * @return {Promise}    promise resolving to the tweet if we follow the user, null otherwise
  */
 const isFromFollower = (tweet,client) => {
-    return new Promise((resolve) => {
+    return new Promise(async (resolve) => {
         let shouldProcess = !isRetweet(tweet);
 
         // Process the tweet on if we're following the account that tweeted it
-        following.getFollowing(client)
-            .then((ids) => {
-                if (ids.filter(id => id === tweet.user.id_str).length === 0) {
-                    shouldProcess = false;
-                }
+        try {
+            const ids = await following.getFollowing(client);
 
-                if (shouldProcess) {
-                    resolve(tweet);
-                }
-                resolve(null);
-            })
-            .catch((err) => reject(err));
+            if (ids.filter(id => id === tweet.user.id_str).length === 0) {
+                shouldProcess = false;
+            }
+
+            if (shouldProcess) {
+                resolve(tweet);
+            }
+            resolve(null);
+        } catch (err) {
+            resolve(null);
+        }
     });
 };
 
@@ -191,7 +194,26 @@ const getImagesFromWebsite = async (url) => {
         try {
 
             // Fetch the content from the web
-            const response = await splash.download(url.href);
+            let response = null;
+            try {
+                response = await splash.download(url.href);
+            } catch (ignored) {}
+
+            if (response == null) {
+                try {
+                    let rpResponse = await rp(url.href);
+                    response = {
+                        html : rpResponse,
+                        url : url.href
+                    };
+                }
+                catch (ignored) {}
+            }
+
+            if (response == null) {
+                resolve([]);
+                return;
+            }
 
             // Run through readability to get main article content
             const article = await readability.read(response.html);
