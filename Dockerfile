@@ -1,8 +1,8 @@
-FROM node:8.4.0-alpine
+FROM node:8.4.0
 
-RUN apk update
-RUN apk upgrade
-RUN apk add supervisor
+RUN apt-get update
+RUN apt-get dist-upgrade -y
+RUN apt-get install -y supervisor
 RUN mkdir -p /var/log/supervisor
 
 ADD package.json package.json

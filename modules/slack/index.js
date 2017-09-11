@@ -9,6 +9,7 @@
     const logWebhook = process.env.slackLogUrl ? new IncomingWebhook(process.env.slackLogUrl) : _identity;
     const hitWebhook = process.env.slackHitUrl ? new IncomingWebhook(process.env.slackHitUrl) : _identity;
     const imageWebhook = process.env.slackImageUrl ? new IncomingWebhook(process.env.slackImageUrl) : _identity;
+    const logosWebhook = process.env.slackLogosUrl ? new IncomingWebhook(process.env.slackLogosUrl) : _identity;
 
     let _handleResponse = (err) => {
         if (err) console.log('Error:', err);
@@ -30,8 +31,13 @@
         imageWebhook.send(msg,_handleResponse);
     };
 
+    let logos = (msg) => {
+        logosWebhook.send(msg,_handleResponse);
+    };
+
     module.exports.log = log;
     module.exports.search = search;
     module.exports.hit = hit;
     module.exports.image = image;
+    module.exports.logos = logos;
 })();
