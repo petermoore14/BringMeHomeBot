@@ -20,6 +20,7 @@ const messages = require('../messages');
 const sha1 = require('sha1');
 const chalk = require('chalk');
 const slack = require('../slack');
+const logo = require('../logo');
 
 module.exports.callImageApi = (imageArray, tweetClient, user, tweetLink) => {
     const apiBaseUrl = process.env.apiBaseUrl;
@@ -34,8 +35,8 @@ module.exports.callImageApi = (imageArray, tweetClient, user, tweetLink) => {
 
         const res = await rp(options(apiBaseUrl + sim, img));
 
-        // If there are image hits, notify the corresponding account
-        if(res.similarHashes.length > 0){
+        // If there are image hits and some are not logos, notify the corresponding account
+        if(res.similarHashes.length > 0 && !await logo.all(res.similarUrls)){
 
             console.log('HIT FOUND: ' + img);
 

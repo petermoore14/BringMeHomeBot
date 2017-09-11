@@ -1,0 +1,6 @@
+version: '3'
+services:
+  logoclassifier:
+    image: docker.uncharted.software/logoclassifier:latest
+    ports:
+      - 5001:5001
