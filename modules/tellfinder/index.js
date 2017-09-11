@@ -40,10 +40,11 @@ module.exports.callImageApi = (imageArray, tweetClient, user, tweetLink) => {
 
             console.log('HIT FOUND: ' + img);
 
-            const hash = computeHash(img);
-            const encodedUri = encodeURIComponent(img);
             const deploymentBaseUrl = process.env.deploymentBaseUrl;
-            const bringMeHomeUrl =  deploymentBaseUrl + '/bringmehome?url=' + encodedUri + '&hash=' + hash.toUpperCase();
+            const encodedTweetUri = encodeURIComponent(tweetLink);
+            const encodedImageUri = encodeURIComponent(img);
+            const hash = sha1(tweetLink + img + process.env.hash_secret);
+            const bringMeHomeUrl = deploymentBaseUrl + '/bringmehome?tweetUrl=' + encodedTweetUri + '&url=' + encodedImageUri + '&hash=' + hash.toUpperCase();
 
             console.log('URL: ' + bringMeHomeUrl);
 
@@ -78,8 +79,4 @@ const options = (url, img) => {
         },
         json: true
     }
-};
-
-const computeHash = (img) =>{
-    return sha1(img + process.env.hash_secret)
 };
